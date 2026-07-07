@@ -151,7 +151,7 @@ export function buildServer(
   // --- SSE ---
   app.get("/api/events", async (req, reply) => {
     // For SSE we drive the underlying Node ServerResponse directly.
-    const raw = req.raw as unknown as ServerResponse;
+    const raw = reply.raw as unknown as ServerResponse;
     raw.writeHead(200, {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",

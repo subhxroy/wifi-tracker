@@ -9,8 +9,8 @@
     "mock-ruview": "./src/cli.ts"
   },
   "scripts": {
-    "dev": "tsx watch src/cli.ts",
-    "start": "tsx src/cli.ts",
+    "dev": "tsx watch --env-file=../../.env src/cli.ts",
+    "start": "tsx --env-file=../../.env src/cli.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "lint": "echo 'no lint'"

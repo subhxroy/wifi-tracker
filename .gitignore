@@ -53,7 +53,8 @@ __pycache__/
 **/dependencies.lock
 
 # RuView upstream: dev/runtime artifacts
-ruview/v2/data/recordings/
+ruview/data/recordings/**
+ruview/v2/data/recordings/**
 **/.vite/
 **/.claude-flow/daemon-state.json
 **/.claude-flow/.trend-cache.json

@@ -81,25 +81,21 @@ export default function ResidentDetailPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
+        <Spinner size={28} />
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas">
-        <SignInForm />
-      </div>
-    );
+    return <SignInForm />;
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-canvas">
         <Navbar />
-        <div className="flex items-center justify-center pt-24">
-          <Spinner />
+        <div className="flex items-center justify-center pt-28">
+          <Spinner size={28} />
         </div>
       </div>
     );
@@ -109,8 +105,8 @@ export default function ResidentDetailPage() {
     return (
       <div className="min-h-screen bg-canvas">
         <Navbar />
-        <div className="mx-auto max-w-4xl px-5 pt-24">
-          <div className="rounded-xl bg-danger-bg p-4 text-sm text-danger">
+        <div className="mx-auto max-w-4xl px-6 pt-28">
+          <div className="rounded-2xl border border-danger/20 bg-danger-muted p-5 text-sm text-danger">
             {error ?? "Resident not found"}
           </div>
         </div>
@@ -137,47 +133,47 @@ export default function ResidentDetailPage() {
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
-      <main className="mx-auto max-w-4xl px-5 pt-20 pb-12">
-        {/* Back link */}
+      <main className="mx-auto max-w-4xl px-6 pt-24 pb-12">
+        {/* Back */}
         <Link
           href="/"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-muted no-underline transition-colors hover:text-text"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-text-muted no-underline transition-colors hover:text-text"
         >
           <ArrowLeft size={14} />
           Back to overview
         </Link>
 
-        {/* Resident header */}
-        <div className="mb-6 flex items-start justify-between">
+        {/* Header */}
+        <div className="mb-8 flex items-start justify-between animate-fade-in">
           <div>
-            <h1 className="font-heading text-2xl font-semibold text-text">{resident.name}</h1>
-            <p className="text-sm text-text-muted">{resident.room}</p>
+            <h1 className="font-heading text-3xl text-text">{resident.name}</h1>
+            <p className="mt-1 text-sm text-text-secondary">{resident.room}</p>
           </div>
           <StatusBadge status={activeAlert ? "alert" : "normal"} />
         </div>
 
-        {/* Sensor health + thresholds summary */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-surface p-4">
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-text-dim">Sensor health</h3>
+        {/* Sensor + Thresholds */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 stagger-children">
+          <div className="rounded-2xl border border-border-subtle bg-surface p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">Sensor health</h3>
             {node ? (
-              <div className="space-y-1.5 text-sm">
+              <div className="space-y-2 text-sm">
                 <SensorHealth online={node.online} lastSeen={node.lastSeen} />
-                {node.rssi && <p className="text-text-muted">RSSI: {node.rssi} dBm</p>}
-                {node.breathingRate && (
-                  <p className="text-text-muted">Breathing: {node.breathingRate} bpm</p>
+                {node.rssi != null && <p className="text-text-secondary">RSSI: {node.rssi} dBm</p>}
+                {node.breathingRate != null && (
+                  <p className="text-text-secondary">Breathing: {node.breathingRate} bpm</p>
                 )}
-                {node.heartRate && (
-                  <p className="text-text-muted">Heart rate: {node.heartRate} bpm</p>
+                {node.heartRate != null && (
+                  <p className="text-text-secondary">Heart rate: {node.heartRate} bpm</p>
                 )}
               </div>
             ) : (
               <p className="text-sm text-text-muted">No data yet</p>
             )}
           </div>
-          <div className="rounded-xl bg-surface p-4">
-            <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-text-dim">Thresholds</h3>
-            <div className="space-y-1 text-sm text-text-muted">
+          <div className="rounded-2xl border border-border-subtle bg-surface p-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">Thresholds</h3>
+            <div className="space-y-1.5 text-sm text-text-secondary">
               <p>Fall confirm: {resident.thresholds.fallConfirmWindowSec}s</p>
               <p>Inactivity (day): {formatDuration(resident.thresholds.inactivityDaySec)}</p>
               <p>Inactivity (night): {formatDuration(resident.thresholds.inactivityNightSec)}</p>
@@ -188,26 +184,26 @@ export default function ResidentDetailPage() {
 
         {/* Active alert */}
         {activeAlert && (
-          <div className="mb-6 rounded-xl border border-danger/30 bg-danger-bg p-4">
+          <div className="mb-8 rounded-2xl border border-danger/20 bg-danger-muted p-5 animate-fade-in">
             <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2.5">
                 <SeverityBadge severity={activeAlert.severity} />
-                <span className="text-sm font-medium text-text">{activeAlert.type.replace("_", " ")}</span>
+                <span className="text-sm font-medium text-text capitalize">{activeAlert.type.replace("_", " ")}</span>
               </div>
               <span className="text-xs text-text-muted">{timeAgo(activeAlert.createdAt)}</span>
             </div>
-            <p className="mb-3 text-sm text-text">{activeAlert.message}</p>
-            <div className="flex items-center gap-2">
+            <p className="mb-4 text-sm text-text">{activeAlert.message}</p>
+            <div className="flex items-center gap-2.5">
               <button
                 onClick={() => handleAck(activeAlert.id)}
-                className="flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-primary-dim"
+                className="flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-xs font-semibold text-canvas transition-all hover:bg-primary-hover active:scale-[0.97]"
               >
                 <CheckCircle size={14} />
                 Acknowledge
               </button>
               <button
                 onClick={() => handleFalseAlarm(activeAlert.id)}
-                className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-3 py-1.5 text-xs font-medium text-text-muted transition-colors hover:text-text"
+                className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-4 py-2 text-xs font-medium text-text-secondary transition-all hover:text-text active:scale-[0.97]"
               >
                 <XCircle size={14} />
                 False alarm
@@ -216,52 +212,52 @@ export default function ResidentDetailPage() {
           </div>
         )}
 
-        {/* Vital trend charts */}
-        <div className="mb-6 grid gap-4 sm:grid-cols-2">
+        {/* Vital charts */}
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 stagger-children">
           <VitalTrendChart
             data={breathingData}
             unit="bpm"
             label="Breathing rate"
             range={resident.thresholds.breathingRange}
-            color="#8b7cf6"
+            color="#d4956a"
           />
           <VitalTrendChart
             data={heartData}
             unit="bpm"
             label="Heart rate"
             range={resident.thresholds.heartRateRange}
-            color="#f04a5e"
+            color="#ef5350"
           />
         </div>
 
         {/* Alert history */}
-        <div className="rounded-xl bg-surface">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-text-dim">
+        <div className="rounded-2xl border border-border-subtle bg-surface overflow-hidden">
+          <div className="border-b border-border-subtle px-5 py-3.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Alert history ({alerts.length})
             </h3>
           </div>
           {alerts.length === 0 ? (
-            <div className="px-4 py-8 text-center text-sm text-text-muted">
+            <div className="px-5 py-10 text-center text-sm text-text-muted">
               No alerts recorded
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div className="divide-y divide-border-subtle">
               {alerts.slice(0, 30).map((alert) => (
-                <div key={alert.id} className="px-4 py-3">
+                <div key={alert.id} className="px-5 py-3.5 transition-colors hover:bg-surface-elevated">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2.5">
                       <SeverityBadge severity={alert.severity} />
-                      <span className="text-sm font-medium text-text">{alert.type.replace(/_/g, " ")}</span>
-                      <span className="text-xs text-text-dim">{alert.status}</span>
+                      <span className="text-sm font-medium text-text capitalize">{alert.type.replace(/_/g, " ")}</span>
+                      <span className="text-xs text-text-muted">{alert.status}</span>
                     </div>
                     <span className="text-xs text-text-muted">{formatDateTime(alert.createdAt)}</span>
                   </div>
-                  <p className="mt-1 text-xs text-text-muted">{alert.message}</p>
+                  <p className="mt-1 text-xs text-text-secondary">{alert.message}</p>
                   {alert.audit.length > 0 && (
-                    <div className="mt-1 flex flex-wrap gap-1">
+                    <div className="mt-1.5 flex flex-wrap gap-1">
                       {alert.audit.slice(-3).map((entry, i) => (
-                        <span key={i} className="rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] text-text-dim">
+                        <span key={i} className="rounded-md bg-surface-elevated px-2 py-0.5 text-[10px] text-text-muted capitalize">
                           {entry.action.replace(/_/g, " ")}
                         </span>
                       ))}

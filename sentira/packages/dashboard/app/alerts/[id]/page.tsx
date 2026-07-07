@@ -61,25 +61,21 @@ export default function AlertDetailPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
+        <Spinner size={28} />
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas">
-        <SignInForm />
-      </div>
-    );
+    return <SignInForm />;
   }
 
   if (loading) {
     return (
       <div className="min-h-screen bg-canvas">
         <Navbar />
-        <div className="flex items-center justify-center pt-24">
-          <Spinner />
+        <div className="flex items-center justify-center pt-28">
+          <Spinner size={28} />
         </div>
       </div>
     );
@@ -89,8 +85,8 @@ export default function AlertDetailPage() {
     return (
       <div className="min-h-screen bg-canvas">
         <Navbar />
-        <div className="mx-auto max-w-3xl px-5 pt-24">
-          <div className="rounded-xl bg-danger-bg p-4 text-sm text-danger">
+        <div className="mx-auto max-w-3xl px-6 pt-28">
+          <div className="rounded-2xl border border-danger/20 bg-danger-muted p-5 text-sm text-danger">
             {error ?? "Alert not found"}
           </div>
         </div>
@@ -103,50 +99,52 @@ export default function AlertDetailPage() {
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
-      <main className="mx-auto max-w-3xl px-5 pt-20 pb-12">
+      <main className="mx-auto max-w-3xl px-6 pt-24 pb-12">
+        {/* Back */}
         <Link
           href="/"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-text-muted no-underline transition-colors hover:text-text"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-text-muted no-underline transition-colors hover:text-text"
         >
           <ArrowLeft size={14} />
           Back to overview
         </Link>
 
-        <div className="mb-6">
+        {/* Header */}
+        <div className="mb-6 animate-fade-in">
           <div className="mb-2 flex items-center gap-3">
             <SeverityBadge severity={alert.severity} />
-            <h1 className="font-heading text-xl font-semibold text-text">
+            <h1 className="font-heading text-2xl text-text capitalize">
               {alert.type.replace(/_/g, " ")}
             </h1>
           </div>
-          <p className="text-sm text-text-muted">
+          <p className="text-sm text-text-secondary">
             {alert.residentName} · {alert.room} · {formatDateTime(alert.createdAt)}
           </p>
         </div>
 
         {/* Message */}
-        <div className="mb-6 rounded-xl bg-surface p-5">
+        <div className="mb-6 rounded-2xl border border-border-subtle bg-surface p-6">
           <p className="text-base leading-relaxed text-text">{alert.message}</p>
           {alert.context?.detail && (
-            <p className="mt-2 text-sm text-text-muted">{alert.context.detail}</p>
+            <p className="mt-2 text-sm text-text-secondary">{alert.context.detail}</p>
           )}
         </div>
 
         {/* Vital context */}
         {alert.context && (alert.context.breathingRate || alert.context.heartRate) && (
-          <div className="mb-6 grid gap-3 sm:grid-cols-2">
-            {alert.context.breathingRate && (
-              <div className="rounded-xl bg-surface p-4">
-                <span className="text-xs text-text-dim">Breathing rate (trend estimate)</span>
-                <p className="font-heading text-2xl font-semibold text-text">
+          <div className="mb-6 grid gap-4 sm:grid-cols-2 stagger-children">
+            {alert.context.breathingRate != null && (
+              <div className="rounded-2xl border border-border-subtle bg-surface p-5">
+                <span className="text-xs text-text-muted">Breathing rate (trend estimate)</span>
+                <p className="mt-1 font-heading text-3xl text-text">
                   {alert.context.breathingRate} <span className="text-sm font-normal text-text-muted">bpm</span>
                 </p>
               </div>
             )}
-            {alert.context.heartRate && (
-              <div className="rounded-xl bg-surface p-4">
-                <span className="text-xs text-text-dim">Heart rate (trend estimate)</span>
-                <p className="font-heading text-2xl font-semibold text-text">
+            {alert.context.heartRate != null && (
+              <div className="rounded-2xl border border-border-subtle bg-surface p-5">
+                <span className="text-xs text-text-muted">Heart rate (trend estimate)</span>
+                <p className="mt-1 font-heading text-3xl text-text">
                   {alert.context.heartRate} <span className="text-sm font-normal text-text-muted">bpm</span>
                 </p>
               </div>
@@ -156,11 +154,11 @@ export default function AlertDetailPage() {
 
         {/* Actions */}
         {isActive && (
-          <div className="mb-6 flex flex-wrap gap-2">
+          <div className="mb-6 flex flex-wrap gap-2.5 stagger-children">
             <button
               onClick={() => doAction("acknowledge", () => acknowledgeAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-dim disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-canvas transition-all hover:bg-primary-hover active:scale-[0.97] disabled:opacity-50"
             >
               {actionLoading === "acknowledge" ? <Spinner size={14} /> : <CheckCircle size={16} />}
               Acknowledge
@@ -168,7 +166,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("escalate", () => escalateAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-amber/30 bg-amber-bg px-4 py-2 text-sm font-medium text-amber transition-colors hover:bg-amber/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-warning/25 bg-warning-muted px-5 py-2.5 text-sm font-medium text-warning transition-all hover:bg-warning/20 active:scale-[0.97] disabled:opacity-50"
             >
               {actionLoading === "escalate" ? <Spinner size={14} /> : <CaretDoubleRight size={16} />}
               Escalate now
@@ -176,7 +174,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("false-alarm", () => markFalseAlarm(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-text-muted transition-colors hover:text-text disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-medium text-text-secondary transition-all hover:text-text active:scale-[0.97] disabled:opacity-50"
             >
               {actionLoading === "false-alarm" ? <Spinner size={14} /> : <XCircle size={16} />}
               False alarm
@@ -184,7 +182,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("resolve", () => resolveAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-lg border border-green/30 bg-green-bg px-4 py-2 text-sm font-medium text-green transition-colors hover:bg-green/20 disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-xl border border-success/25 bg-success-muted px-5 py-2.5 text-sm font-medium text-success transition-all hover:bg-success/20 active:scale-[0.97] disabled:opacity-50"
             >
               {actionLoading === "resolve" ? <Spinner size={14} /> : <Check size={16} />}
               Resolve
@@ -193,63 +191,57 @@ export default function AlertDetailPage() {
         )}
 
         {/* Status info */}
-        <div className="mb-6 rounded-xl bg-surface p-4">
-          <h3 className="mb-2 text-xs font-medium uppercase tracking-wider text-text-dim">Status</h3>
-          <div className="space-y-1 text-sm">
-            <p>
-              <span className="text-text-muted">Current status:</span>{" "}
-              <span className="font-medium text-text">{alert.status}</span>
-            </p>
+        <div className="mb-6 rounded-2xl border border-border-subtle bg-surface p-5">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">Status</h3>
+          <div className="space-y-1.5 text-sm">
+            <StatusRow label="Current status" value={alert.status} />
             {alert.escalationCount > 0 && (
-              <p>
-                <span className="text-text-muted">Escalation rounds:</span>{" "}
-                <span className="font-medium text-text">{alert.escalationCount}</span>
-              </p>
+              <StatusRow label="Escalation rounds" value={String(alert.escalationCount)} />
             )}
             {alert.acknowledgedAt && (
-              <p>
-                <span className="text-text-muted">Acknowledged at:</span>{" "}
-                <span className="font-medium text-text">{formatDateTime(alert.acknowledgedAt)}</span>
-              </p>
+              <StatusRow label="Acknowledged at" value={formatDateTime(alert.acknowledgedAt)} />
             )}
             {alert.acknowledgedBy && (
-              <p>
-                <span className="text-text-muted">Acknowledged by:</span>{" "}
-                <span className="font-medium text-text">{alert.acknowledgedBy}</span>
-              </p>
+              <StatusRow label="Acknowledged by" value={alert.acknowledgedBy} />
             )}
             {alert.resolvedAt && (
-              <p>
-                <span className="text-text-muted">Resolved at:</span>{" "}
-                <span className="font-medium text-text">{formatDateTime(alert.resolvedAt)}</span>
-              </p>
+              <StatusRow label="Resolved at" value={formatDateTime(alert.resolvedAt)} />
             )}
           </div>
         </div>
 
         {/* Audit trail */}
-        <div className="rounded-xl bg-surface">
-          <div className="border-b border-border px-4 py-3">
-            <h3 className="text-xs font-medium uppercase tracking-wider text-text-dim">
+        <div className="rounded-2xl border border-border-subtle bg-surface overflow-hidden">
+          <div className="border-b border-border-subtle px-5 py-3.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
               Audit trail ({alert.audit.length} entries)
             </h3>
           </div>
-          <div className="divide-y divide-border">
+          <div className="divide-y divide-border-subtle">
             {alert.audit.map((entry, i) => (
-              <div key={i} className="flex items-start gap-3 px-4 py-2.5">
-                <span className="mt-0.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text-dim" />
+              <div key={i} className="flex items-start gap-3 px-5 py-3">
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium text-text">{entry.action.replace(/_/g, " ")}</p>
+                  <p className="text-sm font-medium text-text capitalize">{entry.action.replace(/_/g, " ")}</p>
                   {entry.detail && (
-                    <p className="text-xs text-text-muted truncate">{entry.detail}</p>
+                    <p className="mt-0.5 text-xs text-text-secondary truncate">{entry.detail}</p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-text-dim">{formatDateTime(entry.timestamp)}</span>
+                <span className="shrink-0 text-xs text-text-muted">{formatDateTime(entry.timestamp)}</span>
               </div>
             ))}
           </div>
         </div>
       </main>
     </div>
+  );
+}
+
+function StatusRow({ label, value }: { label: string; value: string }) {
+  return (
+    <p>
+      <span className="text-text-muted">{label}:</span>{" "}
+      <span className="font-medium text-text capitalize">{value}</span>
+    </p>
   );
 }

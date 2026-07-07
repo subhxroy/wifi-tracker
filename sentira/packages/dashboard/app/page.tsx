@@ -10,6 +10,7 @@ import { ResidentCard } from "@/components/ResidentCard";
 import { AlertBanner } from "@/components/AlertBanner";
 import { SignInForm } from "@/components/SignInForm";
 import { Spinner } from "@/components/Spinner";
+import { ShieldCheck, WifiHigh, Pulse } from "@phosphor-icons/react";
 
 export default function OverviewPage() {
   const { user, loading: authLoading } = useAuth();
@@ -45,50 +46,77 @@ export default function OverviewPage() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <Spinner />
+        <Spinner size={28} />
       </div>
     );
   }
 
   if (!user) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-canvas">
-        <SignInForm />
-      </div>
-    );
+    return <SignInForm />;
   }
 
   const alertResidents = overview?.residents.filter((r) => r.status === "alert") ?? [];
   const attentionResidents = overview?.residents.filter((r) => r.status === "attention") ?? [];
   const normalResidents = overview?.residents.filter((r) => r.status === "normal") ?? [];
 
+  const totalResidents = overview?.residents.length ?? 0;
+  const onlineSensors = overview?.residents.filter((r) => r.sensorOnline).length ?? 0;
+
   return (
     <div className="min-h-screen bg-canvas">
       <Navbar />
-      <main className="mx-auto max-w-6xl px-5 pt-20 pb-12">
+      <main className="mx-auto max-w-6xl px-6 pt-24 pb-12">
+        {/* Page header */}
+        <div className="mb-8 animate-fade-in">
+          <h1 className="font-heading text-3xl text-text">Dashboard</h1>
+          <p className="mt-1 text-sm text-text-secondary">Real-time monitoring overview</p>
+        </div>
+
+        {/* Stats row */}
+        <div className="mb-8 grid grid-cols-3 gap-4 stagger-children">
+          <StatCard
+            icon={<ShieldCheck size={18} className="text-primary" />}
+            label="Residents"
+            value={totalResidents.toString()}
+          />
+          <StatCard
+            icon={<WifiHigh size={18} className="text-success" />}
+            label="Sensors online"
+            value={`${onlineSensors}/${totalResidents}`}
+          />
+          <StatCard
+            icon={<Pulse size={18} className={alertResidents.length > 0 ? "text-danger" : "text-success"} />}
+            label="Active alerts"
+            value={alertResidents.length.toString()}
+            highlight={alertResidents.length > 0}
+          />
+        </div>
+
         {/* Active alerts banner */}
         {alertResidents.length > 0 && (
-          <div className="mb-6 space-y-2">
-            <h2 className="text-xs font-medium uppercase tracking-wider text-text-dim">Active alerts</h2>
-            {activeAlerts.filter((a) => a.status === "active" || a.status === "escalated").slice(0, 3).map((alert) => (
-              <AlertBanner key={alert.id} alert={alert} />
-            ))}
+          <div className="mb-8">
+            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">Active alerts</h2>
+            <div className="space-y-2">
+              {activeAlerts.filter((a) => a.status === "active" || a.status === "escalated").slice(0, 3).map((alert) => (
+                <AlertBanner key={alert.id} alert={alert} />
+              ))}
+            </div>
           </div>
         )}
 
-        {/* Residents */}
-        <div className="mb-6">
-          <h2 className="mb-3 text-xs font-medium uppercase tracking-wider text-text-dim">Residents</h2>
+        {/* Residents grid */}
+        <div className="mb-8">
+          <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted">Residents</h2>
           {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Spinner />
+            <div className="flex items-center justify-center py-16">
+              <Spinner size={28} />
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-danger-bg p-4 text-sm text-danger">
-              Could not connect to middleware: {error}. Make sure the middleware is running on port 4400.
+            <div className="rounded-2xl border border-danger/20 bg-danger-muted p-5 text-sm text-danger">
+              Could not connect to middleware: {error}
             </div>
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger-children">
               {alertResidents.map((r) => (
                 <ResidentCard key={r.id} resident={r} />
               ))}
@@ -102,13 +130,27 @@ export default function OverviewPage() {
           )}
         </div>
 
-        {/* System status */}
+        {/* Footer */}
         {overview && (
-          <div className="text-xs text-text-dim">
+          <p className="text-xs text-text-muted">
             Last updated: {new Date(overview.generatedAt).toLocaleTimeString()}
-          </div>
+          </p>
         )}
       </main>
+    </div>
+  );
+}
+
+function StatCard({ icon, label, value, highlight = false }: { icon: React.ReactNode; label: string; value: string; highlight?: boolean }) {
+  return (
+    <div className={`rounded-2xl border p-4 ${
+      highlight ? "border-danger/20 bg-danger-muted" : "border-border-subtle bg-surface"
+    }`}>
+      <div className="mb-2 flex items-center gap-2">
+        {icon}
+        <span className="text-xs text-text-muted">{label}</span>
+      </div>
+      <p className={`text-2xl font-semibold ${highlight ? "text-danger" : "text-text"}`}>{value}</p>
     </div>
   );
 }

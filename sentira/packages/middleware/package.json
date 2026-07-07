@@ -6,8 +6,8 @@
   "description": "Sentira fusion + rules engine: ingests RuView MQTT, runs detection rules, owns alert state, drives Twilio/FCM providers + REST/SSE API.",
   "main": "./src/index.ts",
   "scripts": {
-    "dev": "tsx watch src/main.ts",
-    "start": "tsx src/main.ts",
+    "dev": "tsx watch --env-file=../../.env src/main.ts",
+    "start": "tsx --env-file=../../.env src/main.ts",
     "typecheck": "tsc --noEmit",
     "build": "tsc",
     "lint": "echo 'no lint'"
