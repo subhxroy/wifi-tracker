@@ -1,0 +1,27 @@
+{
+  "name": "@sentira/mock-ruview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hardware stand-in. Publishes RuView-shaped MQTT messages so the middleware can be developed without ESP32 nodes.",
+  "main": "./src/index.ts",
+  "bin": {
+    "mock-ruview": "./src/cli.ts"
+  },
+  "scripts": {
+    "dev": "tsx watch src/cli.ts",
+    "start": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "echo 'no lint'"
+  },
+  "dependencies": {
+    "aedes": "^1.1.1",
+    "mqtt": "^5.10.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}

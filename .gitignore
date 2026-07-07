@@ -1,0 +1,59 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build artifacts
+dist
+build
+.next
+out
+*.tsbuildinfo
+target
+
+# environment files
+.env
+.env.local
+.env.*.local
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Firebase
+.firebase
+firebase-debug.log
+firestore-debug.log
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.ruff_cache/
+.pytest_cache/
+
+# Rust
+**/target/
+
+# ESP32 firmware build artifacts
+**/build/
+**/sdkconfig
+**/sdkconfig.old
+**/managed_components/
+**/dependencies.lock
+
+# RuView upstream: dev/runtime artifacts
+ruview/v2/data/recordings/
+**/.vite/
+**/.claude-flow/daemon-state.json
+**/.claude-flow/.trend-cache.json

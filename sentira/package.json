@@ -1,0 +1,29 @@
+{
+  "name": "sentira",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sentira — camera-free elder monitoring built on RuView WiFi CSI sensing. Supplemental alert layer, not a medical device.",
+  "license": "MIT",
+  "packageManager": "pnpm@11.9.0",
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "dev": "pnpm -r --parallel --stream run dev",
+    "build": "pnpm -r run build",
+    "lint": "pnpm -r run lint",
+    "typecheck": "pnpm -r run typecheck",
+    "clean": "pnpm -r exec rimraf dist .turbo node_modules",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker compose logs -f",
+    "docker:rebuild": "docker compose build --no-cache && docker compose up -d",
+    "local:up": "docker compose up -d mosquitto && pnpm --parallel --stream -r run dev",
+    "local:down": "docker compose down && pnpm -r exec echo 'stopped'"
+  },
+  "devDependencies": {
+    "rimraf": "^5.0.10",
+    "typescript": "^5.6.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

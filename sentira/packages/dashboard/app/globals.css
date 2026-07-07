@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&display=swap');
+
+@theme {
+  --color-canvas: #0a0a0f;
+  --color-surface: #141420;
+  --color-surface-elevated: #1c1c2e;
+  --color-border: #2a2a3e;
+  --color-border-hover: #3a3a52;
+  --color-primary: #8b7cf6;
+  --color-primary-dim: #6b5dd6;
+  --color-primary-muted: rgba(139, 124, 246, 0.12);
+  --color-text: #e8e8f0;
+  --color-text-muted: #8a8a9e;
+  --color-text-dim: #5a5a72;
+  --color-danger: #f04a5e;
+  --color-danger-bg: rgba(240, 74, 94, 0.1);
+  --color-amber: #f0a04a;
+  --color-amber-bg: rgba(240, 160, 74, 0.1);
+  --color-green: #4ae0a0;
+  --color-green-bg: rgba(74, 224, 160, 0.1);
+  --font-heading: 'Fraunces', Georgia, serif;
+  --font-sans: 'Geist Variable', 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-border) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 3px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: var(--color-border-hover);
+  }
+}

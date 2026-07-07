@@ -1,0 +1,37 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build
+dist
+build
+.next
+out
+*.tsbuildinfo
+
+# env (keep .env.example, ignore real secrets)
+.env
+.env.local
+.env.*.local
+!/.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+Thumbs.db
+
+# firebase
+.firebase
+firebase-debug.log
+firestore-debug.log
+
+# ruview upstream artifacts (we don't build it from here)
+ruview/target
+ruview/**/target

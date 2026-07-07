@@ -1,0 +1,56 @@
+# ==========================================================================
+# Sentira — full local hosting
+# ==========================================================================
+# Single docker compose up starts everything: MQTT broker, middleware,
+# and dashboard. ESP32 nodes connect to mosquitto on the LAN.
+#
+#   docker compose up -d
+#   open http://<pi-ip>:4300
+#
+# Configure via .env (copy from .env.example).
+# ==========================================================================
+
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2.0.20
+    container_name: sentira-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+      - "9001:9001"
+    volumes:
+      - ./infrastructure/mosquitto/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 3 mosquitto_sub -h 127.0.0.1 -p 1883 -t 'sentira/healthcheck' -C 1 || exit 0"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+  middleware:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/middleware.Dockerfile
+    container_name: sentira-middleware
+    restart: unless-stopped
+    ports:
+      - "${MIDDLEWARE_PORT:-4400}:4400"
+    env_file: .env
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: infrastructure/docker/dashboard.Dockerfile
+    container_name: sentira-dashboard
+    restart: unless-stopped
+    ports:
+      - "4300:3000"
+    env_file: .env
+    depends_on:
+      - middleware
+
+volumes:
+  mosquitto_data:

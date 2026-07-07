@@ -1,0 +1,28 @@
+{
+  "name": "@sentira/middleware",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sentira fusion + rules engine: ingests RuView MQTT, runs detection rules, owns alert state, drives Twilio/FCM providers + REST/SSE API.",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc",
+    "lint": "echo 'no lint'"
+  },
+  "dependencies": {
+    "@sentira/types": "workspace:*",
+    "fastify": "^5.1.0",
+    "@fastify/cors": "^10.0.1",
+    "mqtt": "^5.10.1",
+    "pino": "^9.5.0",
+    "nanoid": "^5.0.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  }
+}
