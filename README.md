@@ -19,7 +19,7 @@ This workspace is structured as a multi-project monorepo containing three core c
 wifi-tracker/
  ruview/          Upstream WiFi sensing platform (MIT, by rUv) - C/Rust firmware & sensing server
  sentira/         Caregiver monitoring system - rules engine, alert lifecycle, and dashboard
- bloom-landing/   Sentira marketing landing page - Vite + React 19 + Tailwind CSS v4
+ sentira-landing/   Sentira marketing landing page - Vite + React 19 + Tailwind CSS v4
 ```
 
 ---
@@ -173,10 +173,10 @@ Sentira applies stateful logic over raw sensor feeds to minimize false alarms an
 
 ## Marketing Landing Page
 
-The `bloom-landing/` directory is a standalone Vite project serving as the marketing presentation page for Sentira. It shares the same sleek liquid-glass design language as the dashboard.
+The `sentira-landing/` directory is a standalone Vite project serving as the marketing presentation page for Sentira. It shares the same sleek liquid-glass design language as the dashboard.
 
 ```bash
-cd bloom-landing
+cd sentira-landing
 npm run dev     # Start development server
 npm run build   # Build distribution assets into /dist
 ```
@@ -208,7 +208,7 @@ curl http://localhost:4400/api/overview   # Caregiver overview state
 This workspace packages two independently licensed open-source modules:
 
 1. **`ruview/`**: Upstream WiFi sensing core, copyright © 2024 **rUv**. Licensed under the [MIT License](ruview/LICENSE). Sentira consumes the MQTT interface as-is without code modifications.
-2. **`sentira/` & `bloom-landing/`**: Original monitoring application, caregiver workflows, API, and landing designs. Licensed under the [MIT License](LICENSE).
+2. **`sentira/` & `sentira-landing/`**: Original monitoring application, caregiver workflows, API, and landing designs. Licensed under the [MIT License](LICENSE).
 
 ---
 

@@ -8,7 +8,7 @@ export function Navbar() {
   const { user, signOut } = useAuth();
 
   return (
-    <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-hairline bg-canvas">
+    <nav className="fixed inset-x-0 top-0 z-50 h-16 border-b border-hairline bg-white">
       <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
         <div className="flex items-center gap-8">
           <Link href="/" className="flex items-center gap-2.5 text-ink no-underline">

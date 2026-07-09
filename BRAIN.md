@@ -7,7 +7,7 @@ Two projects in this repo:
 | Project | Path | Stack | Purpose |
 |---------|------|-------|---------|
 | **sentira** | `sentira/` | pnpm monorepo — Node.js + Next.js + React | Camera-free elder monitoring via WiFi CSI. Rules engine, caregiver dashboard, mock sensor |
-| **bloom-landing** | `bloom-landing/` | Vite + React 19 + Tailwind v4 | Marketing landing page for Sentira (static, deploy to Netlify/Vercel) |
+| **sentira-landing** | `sentira-landing/` | Vite + React 19 + Tailwind v4 | Marketing landing page for Sentira (static, deploy to Netlify/Vercel) |
 
 ---
 
@@ -166,16 +166,16 @@ Each resident has: thresholds (fall window, inactivity day/night, vitals ranges)
 |--------|----------|--------|
 | Dashboard | Netlify | `sentira/netlify.toml` — `pnpm --filter @sentira/dashboard build` |
 | Middleware | Railway | `sentira/railway.json` — Docker build from `infrastructure/docker/middleware.Dockerfile` |
-| Landing Page | Netlify/Vercel | `bloom-landing/` — `npm run build` → `dist/` |
+| Landing Page | Netlify/Vercel | `sentira-landing/` — `npm run build` → `dist/` |
 | All-in-one | Raspberry Pi | `docker compose up -d` from `sentira/` |
 | MQTT Broker | HiveMQ Cloud (free) | Broker URL + TLS credentials in middleware env |
 
 ---
 
-## bloom-landing/
+## sentira-landing/
 
 ```
-bloom-landing/
+sentira-landing/
 ├── index.html         # HTML shell (Google Fonts, title "Sentira")
 ├── vite.config.ts     # Tailwind v4 + React plugin
 ├── tsconfig.json      # Strict TS, Bundler resolution
@@ -191,5 +191,5 @@ bloom-landing/
 - Tailwind v4 via `@tailwindcss/vite` plugin
 - Lucide icons (WifiHigh, Bell, Activity, etc.)
 - Video background from CloudFront (atmospheric stock footage)
-- Build: `cd bloom-landing && npm run build`
+- Build: `cd sentira-landing && npm run build`
 - Same liquid-glass aesthetic as sentira dashboard (CSS layers in index.css)
