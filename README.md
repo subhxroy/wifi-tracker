@@ -1,166 +1,216 @@
 # WiFi Tracker — Camera-Free Elder Monitoring
 
-[GitHub](https://github.com/subhxroy/wifi-tracker) &middot; [Issues](https://github.com/subhxroy/wifi-tracker/issues)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![Privacy: 100% Camera-Free](https://img.shields.io/badge/Privacy-100%25%20Camera--Free-brightgreen)](docs/ARCHITECTURE.md#design-constraints)
+[![Hardware: ESP32-S3](https://img.shields.io/badge/Hardware-ESP32--S3-orange.svg)](ruview/README.md)
+[![Middleware Stack](https://img.shields.io/badge/Middleware-TS%20%7C%20Fastify-blue.svg)](sentira/packages/middleware)
+[![Dashboard Stack](https://img.shields.io/badge/Dashboard-Next.js%2015-black.svg)](sentira/packages/dashboard)
 
-Two separate projects that stack together:
+> [!IMPORTANT]
+> **Sentira WiFi Tracker** is a privacy-first, camera-free, and wearable-free elder monitoring system. By analyzing **Wi-Fi Channel State Information (CSI)** from low-cost ESP32-S3 nodes, the system tracks presence, respiration trends, fall risks, and inactivity anomalies in real-time.
 
-```
+---
+
+## Repository Architecture
+
+This workspace is structured as a multi-project monorepo containing three core components:
+
+```text
 wifi-tracker/
-├── ruview/         Upstream WiFi sensing platform (MIT, by rUv)
-├── sentira/        Caregiver monitoring app built on RuView's MQTT feed
-└── bloom-landing/  Sentira marketing landing page (Vite + React)
+ ruview/          Upstream WiFi sensing platform (MIT, by rUv) - C/Rust firmware & sensing server
+ sentira/         Caregiver monitoring system - rules engine, alert lifecycle, and dashboard
+ bloom-landing/   Sentira marketing landing page - Vite + React 19 + Tailwind CSS v4
 ```
 
-## How They Connect
+---
 
+## System Dataflow & Connection
+
+The sensing layer (`ruview/`) and the application layer (`sentira/`) are completely decoupled at the code level. Communication occurs asynchronously over your local area network (LAN) via **MQTT**.
+
+```mermaid
+flowchart TD
+    subgraph Layer1 ["1. Sensing Layer (ruview/)"]
+        ESP["ESP32-S3 Nodes ($9)\nFirmware: C / ESP-IDF"] -- "Raw CSI Frames\n(UDP:7030)" --> SRV["Sensing Server\nLanguage: Rust"]
+    end
+
+    subgraph Layer2 ["2. Broker (LAN)"]
+        SRV -- "Publish State\n(Home Assistant Format)" --> Broker["Mosquitto MQTT Broker\n(Port 1883)"]
+    end
+
+    subgraph Layer3 ["3. Middleware (sentira/)"]
+        Broker -- "Subscribe\n(Node Prefix Match)" --> Sub["MQTT Subscriber\n(Fastify + TypeScript)"]
+        Sub --> Engine["Rules Engine\n(5 Detection Rules)"]
+        Engine --> AlertMgr["Alert Manager\n(Escalation + State Machine)"]
+        AlertMgr --> Store["In-Memory Store"]
+        AlertMgr --> Notify["Notification Providers\n(SMS, WhatsApp, Push)"]
+    end
+
+    subgraph Layer4 ["4. Clients & Presentation"]
+        Store -- "Server-Sent Events (SSE)\n(Port 4400)" --> Dash["Caregiver Dashboard\nNext.js 15 (Port 4300)"]
+        Landing["Marketing Site\nReact 19 + Tailwind v4"]
+    end
+
+    style Layer1 fill:#111827,stroke:#3b82f6,stroke-width:2px,color:#ffffff
+    style Layer2 fill:#111827,stroke:#10b981,stroke-width:2px,color:#ffffff
+    style Layer3 fill:#111827,stroke:#8b5cf6,stroke-width:2px,color:#ffffff
+    style Layer4 fill:#111827,stroke:#ec4899,stroke-width:2px,color:#ffffff
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│  ruview/                                                           │
-│                                                                   │
-│  ESP32-S3 ($9) → CSI frames → sensing-server → MQTT              │
-│                                                                   │
-│  Publishes to: homeassistant/<type>/wifi_densepose_<mac>/<slug>/state
-│  (21 entity types: presence, breathing_rate, fall, motion, ...)   │
-└──────────────────────────────┬────────────────────────────────────┘
-                               │ MQTT (LAN)
-                               ▼
-┌────────────────────────────────────────────────────────────────────┐
-│  sentira/                                                         │
-│                                                                   │
-│  Subscribes: homeassistant/+/+/+/state  (filters by node prefix) │
-│  Rules engine → alert manager → SMS / WhatsApp / Push / Dashboard │
-│                                                                   │
-│  Links: http://<pi-ip>:4400 (API)  ·  http://<pi-ip>:4300 (UI)   │
-└────────────────────────────────────────────────────────────────────┘
-```
 
-**They are separate folders, not coupled at the code level.** The connection is purely via MQTT on your LAN:
+### Technical Stack Comparison
 
-| Layer | ruview/ | sentira/ |
-|-------|---------|----------|
-| Code language | Rust (v2) + C (ESP32 firmware) | TypeScript (Node.js + Next.js) |
-| Build system | Cargo + ESP-IDF | pnpm monorepo |
-| Runs on | ESP32-S3 + optional Pi | Raspberry Pi (Docker or host) |
-| MQTT role | Publisher (sensor data) | Subscriber (consumes and alerts) |
-| Needs each other? | No (RuView works alone with HA) | Yes (needs RuView MQTT feed or mock) |
-| Folder contents | Firmware, Rust crates, 182 ADRs, CI | Middleware, dashboard, mock, types |
+| Dimension | `ruview/` | `sentira/` |
+| :--- | :--- | :--- |
+| **Primary Language** | Rust (Sensing Server) + C (ESP32 Firmware) | TypeScript (Next.js + Node.js) |
+| **Build & Package System**| Cargo + ESP-IDF | `pnpm` monorepo workspace |
+| **Runtime Target** | ESP32-S3 hardware + Raspberry Pi / PC | Raspberry Pi / Linux Host (or Docker) |
+| **MQTT Role** | Publisher (Publishes sensor & vitals data) | Subscriber (Consumes events & routes alerts) |
+| **Dependency Status** | Upstream core (Runs fully standalone) | Consuming app (Requires MQTT feed or mock) |
+| **Core Content** | C firmware, DSP crates, 180+ ADR records | Middleware API, Next.js Dashboard, CLI mock |
 
-## Integration Path
+---
+
+## Hardware Requirements
+
+A robust monitoring system built on highly affordable components with privacy at the core:
+
+| Component | Estimated Cost | Role |
+| :--- | :--- | :--- |
+| **ESP32-S3 (8MB Flash)** | ~$9 | WiFi CSI sensing node (runs `ruview` firmware) |
+| **WiFi Router (2.4 GHz)** | — | Radio signal source for CSI frame generation |
+| **Raspberry Pi 4+ (4GB)** | ~$45 | Host server for `sentira` middleware + dashboard |
+| **Additional ESP32-S3** | ~$9 / each | Optional nodes for multi-room coverage extension |
+
+> [!NOTE]
+> **No Cameras. No Wearables. 100% Local Processing & Privacy.**
+
+---
+
+## Quick Start & Integration
+
+Follow this path to spin up the local environment and simulate sensing events.
+
+### 1. Clone & Set Up Workspace
 
 ```bash
-# Clone first
+# Clone the repository
 git clone https://github.com/subhxroy/wifi-tracker.git
 cd wifi-tracker
+```
 
-# Option A — Docker (all-in-one, recommended for Pi)
+### 2. Run the Sentira Dashboard & Middleware
+
+There are two primary modes to run the application workspace:
+
+#### Option A: Docker Compose (All-in-One, Recommended for Pi)
+This starts Mosquitto, the Node.js middleware API, and the Next.js dashboard concurrently:
+```bash
 cd sentira
 docker compose up -d
-# Dashboard at http://<pi-ip>:4300
-
-# Option B — Hybrid dev (MQTT in Docker, code on host)
-cd sentira
-docker compose up -d mosquitto
-pnpm install --ignore-scripts
-pnpm --filter @sentira/middleware start   # terminal 1
-pnpm --filter @sentira/dashboard dev      # terminal 2
-pnpm --filter @sentira/mock-ruview start  # terminal 3 (test data)
-
-# Then flash ESP32 with RuView firmware for real sensing:
-cd ../ruview/firmware/esp32-csi-node
-python3 provision.py --ssid MyWiFi --password secret --target-ip <pi-ip>
-# RuView sensing server publishes to <pi-ip>:1883
-# Sentira subscribes automatically — no config changes needed
+# Access the dashboard at http://localhost:4300
 ```
+
+#### Option B: Hybrid Dev Mode (Broker in Docker, Source Code on Host)
+Ideal for modifying dashboard components or middleware rules:
+```bash
+cd sentira
+
+# Start Mosquitto broker
+docker compose up -d mosquitto
+
+# Install dependencies and start components
+pnpm install --ignore-scripts
+pnpm --filter @sentira/middleware start   # Terminal 1 (API, Port 4400)
+pnpm --filter @sentira/dashboard dev      # Terminal 2 (Next.js Dashboard, Port 4300)
+pnpm --filter @sentira/mock-ruview start  # Terminal 3 (Hardware simulator)
+```
+
+### 3. Flash Hardware CSI Nodes (Optional)
+To stream real CSI telemetry instead of using the simulator, flash the ESP32-S3 device:
+```bash
+cd ruview/firmware/esp32-csi-node
+python3 provision.py --ssid "Your-WiFi-Name" --password "WiFi-Password" --target-ip "<host-pi-ip>"
+```
+
+---
 
 ## MQTT Topic Contract
 
-Sentira subscribes to the format RuView's sensing server publishes:
+The system adheres to standard Home Assistant auto-discovery formats to facilitate seamless integration:
 
-```
+```text
 homeassistant/<component>/wifi_densepose_<mac>/<slug>/state
 ```
 
-| Part | Values |
-|------|--------|
-| `<component>` | `binary_sensor`, `sensor`, `event` |
-| `<mac>` | ESP32 MAC address (e.g. `aabbccddeeff`) |
-| `<slug>` | `presence`, `breathing_rate`, `heart_rate`, `fall`, `motion_level`, `motion_energy`, `no_movement`, `someone_sleeping`, `possible_distress`, `room_active`, `elderly_inactivity_anomaly`, `meeting_in_progress`, `bathroom_occupied`, `fall_risk_elevated`, `bed_exit`, `multi_room_transition`, `person_count`, `presence_score`, `rssi`, `zone_occupancy`, `pose` |
+* **`<component>`**: `binary_sensor`, `sensor`, or `event`
+* **`<mac>`**: The unique physical MAC address of the sensing ESP32 node (e.g., `aabbccddeeff`).
+* **`<slug>`**: The state entity name. The middleware processes 21 distinct slugs:
+  * *Safety / Critical*: `presence`, `fall`, `no_movement`, `possible_distress`, `elderly_inactivity_anomaly`
+  * *Vitals / Activity*: `breathing_rate`, `heart_rate`, `motion_level`, `motion_energy`, `room_active`
+  * *Smart Home*: `someone_sleeping`, `bathroom_occupied`, `bed_exit`, `person_count`, `presence_score`, `rssi`, `zone_occupancy`, `pose`
 
-Configure via `RUVIEW_NODE_PREFIX` in `.env` (default: `wifi_densepose` — matches RuView's node ID format `wifi_densepose_<mac>`).
+> [!TIP]
+> You can override the subscription prefix filter by setting `RUVIEW_NODE_PREFIX` in `sentira/packages/middleware/.env` (default is `wifi_densepose`).
 
-## Attribution & License (Important)
+---
 
-This project **uses** [RuView](https://github.com/ruvnet/ruview) as an **upstream dependency**. RuView is a separate project with its own MIT license and copyright holder. We do not fork, modify, or redistribute RuView's code.
+## Caregiver Rules & Alerts
 
-| Component | License | Copyright | Relationship |
-|-----------|---------|-----------|-------------|
-| `ruview/` (firmware + Rust crates) | [MIT](ruview/LICENSE) | © 2024 rUv | Upstream; imported as-is, run as separate process |
-| `sentira/` (middleware + dashboard) | MIT (ours) | Our own | Separate project consuming RuView's MQTT output |
-| MQTT topic contract | Open protocol | — | Standard HA auto-discovery, used by many projects |
+Sentira applies stateful logic over raw sensor feeds to minimize false alarms and coordinate caregiver responses:
 
-**What we consume from RuView:**
-- MQTT state messages from the sensing server (21 entity kinds)
-- ESP32 firmware (flashed to hardware, run as a separate device)
-- The entity taxonomy and HA discovery format
+| Alert Type | Severity | Logic Summary |
+| :--- | :--- | :--- |
+| **Fall Detection** | High | Dual-stage trigger: registers high-energy fall spike followed by zero movement for 20s. Ignores single drops (e.g., dropped books). |
+| **Inactivity Anomaly**| High | Sensor registers active presence, but zero movement exceeding day (2 hr) or night (8 hr) parameters. |
+| **Respiration Trend** | Medium | Checks breathing rate trend. Flags when 3+ out-of-range anomalies occur in a 5-minute rolling window. |
+| **Sensor Offline** | Medium | Node heartbeats run every 15s. Flags alert if no packet received within a 90s window. |
 
-**What RuView does not provide (Sentira's original work):**
-- Alert lifecycle with escalation chains and multi-channel notification routing
-- Caregiver dashboard with real-time SSE, audit trails, and per-resident thresholds
-- Detection rules optimised for elder monitoring (two-stage fall confirm, day/night inactivity split)
-- Provider abstraction with stub mode (Twilio, FCM, all optional)
+### Notification & Escalation Chain
+* **High Severity Alerts**: Dispatched via SMS, WhatsApp, and push notifications immediately and in parallel to primary emergency contacts. Escalates to secondary contacts after 180s of inactivity.
+* **Medium Severity Alerts**: Logged to the dashboard and sent via silent push notifications. Auto-resolves once the telemetry clears.
 
-Both are MIT. Use, modify, and distribute freely with attribution.
+---
 
-## Hardware
+## Marketing Landing Page
 
-| Component | Cost | Role |
-|-----------|------|------|
-| ESP32-S3 (8MB flash) | ~$9 | WiFi CSI sensing node (RuView firmware) |
-| WiFi router (2.4 GHz) | — | Radio source for CSI |
-| Raspberry Pi 4+ (4GB) | ~$45 | Runs sentira middleware + dashboard |
-| Optional: additional ESP32 | ~$9/ea | Multi-room coverage |
-
-No cameras. No wearables. No cloud required.
-
-## Quick Reference
-
-```bash
-# Clone
-git clone https://github.com/subhxroy/wifi-tracker.git
-cd wifi-tracker
-
-# Sentira commands (run from sentira/)
-pnpm typecheck              # type-check all packages
-pnpm docker:up             # start all services
-pnpm docker:logs           # follow logs
-pnpm local:up              # Mosquitto in Docker + packages on host
-
-# Mock sensor data
-pnpm --filter @sentira/mock-ruview start                       # normal baseline
-pnpm --filter @sentira/mock-ruview start -- --scenario fall    # fall detection test
-pnpm --filter @sentira/mock-ruview start -- --scenario inactivity # inactivity test
-
-# Endpoints
-curl http://localhost:4400/health      # middleware health
-curl http://localhost:4400/api/overview # resident status
-open http://localhost:4300             # dashboard
-```
-
-## Landing Page
-
-`bloom-landing/` is a standalone Vite + React 19 + Tailwind v4 SPA serving as Sentira's marketing page.
+The `bloom-landing/` directory is a standalone Vite project serving as the marketing presentation page for Sentira. It shares the same sleek liquid-glass design language as the dashboard.
 
 ```bash
 cd bloom-landing
-npm run build   # → dist/ (deploy to Netlify/Vercel)
+npm run dev     # Start development server
+npm run build   # Build distribution assets into /dist
 ```
 
-Same liquid-glass design language as the dashboard. CloudFront video background, Lucide icons, Poppins/Source Serif 4 fonts.
+---
 
-## Codebase BRAIN
+## Diagnostics & CLI Reference
 
-[BRAIN.md](BRAIN.md) — full codebase reference for AI tools: directory tree, data flow, route tables, key files, deployment configs. Load before codegen sessions.
+Run these commands from the root or within `sentira/` to quickly debug or test rule behaviors:
 
-See individual READMEs for full documentation:
-- [RuView](ruview/README.md) — hardware build, provisioning, sensing server, Home Assistant
-- [Sentira](sentira/README.md) — architecture, config, dashboard, API, deployment
+```bash
+# Type-check the monorepo packages
+pnpm typecheck
+
+# Simulate specific hardware sensor scenarios
+pnpm --filter @sentira/mock-ruview start                       # Normal daily baseline
+pnpm --filter @sentira/mock-ruview start -- --scenario fall    # Inject sudden fall event
+pnpm --filter @sentira/mock-ruview start -- --scenario inactivity # Inject inactivity anomalies
+
+# Direct API queries
+curl http://localhost:4400/health        # Liveness check
+curl http://localhost:4400/api/overview   # Caregiver overview state
+```
+
+---
+
+## Attribution & License
+
+This workspace packages two independently licensed open-source modules:
+
+1. **`ruview/`**: Upstream WiFi sensing core, copyright © 2024 **rUv**. Licensed under the [MIT License](ruview/LICENSE). Sentira consumes the MQTT interface as-is without code modifications.
+2. **`sentira/` & `bloom-landing/`**: Original monitoring application, caregiver workflows, API, and landing designs. Licensed under the [MIT License](LICENSE).
+
+---
+
+## Developer Brain
+For detailed information regarding route registries, data schemas, or system diagrams, consult the codebase database documentation in [BRAIN.md](BRAIN.md).
