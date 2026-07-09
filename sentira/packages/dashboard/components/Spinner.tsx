@@ -1,7 +1,7 @@
 export function Spinner({ size = 20 }: { size?: number }) {
   return (
     <svg
-      className="animate-spin text-primary"
+      className="animate-spin text-ink"
       width={size}
       height={size}
       viewBox="0 0 24 24"

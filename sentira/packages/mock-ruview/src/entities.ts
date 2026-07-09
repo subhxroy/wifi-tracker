@@ -44,7 +44,7 @@ export const ENTITIES: readonly EntityMeta[] = [
   E({ slug: "elderly_inactivity_anomaly", component: "binary_sensor", icon: "mdi:account-clock" }),
   E({ slug: "meeting_in_progress", component: "binary_sensor", icon: "mdi:account-group" }),
   E({ slug: "bathroom_occupied", component: "binary_sensor", icon: "mdi:toilet" }),
-  E({ slug: "fall_risk_elevated", component: "binary_sensor", icon: "mdi:human-fall" }),
+  E({ slug: "fall_risk_elevated", component: "sensor", stateClass: "measurement", icon: "mdi:human-fall" }),
   E({ slug: "bed_exit", component: "event", icon: "mdi:bed-empty" }),
   E({ slug: "no_movement", component: "binary_sensor", icon: "mdi:motion-off" }),
   E({ slug: "multi_room_transition", component: "event", icon: "mdi:swap-horizontal" }),

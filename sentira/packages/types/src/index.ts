@@ -240,10 +240,20 @@ export interface OverviewSnapshot {
     /** Per-room sensor health. */
     sensorOnline: boolean;
     sensorLastSeen?: number;
+    /** Epoch ms of last detected activity (motion, presence change, etc). */
+    lastActivity?: number;
     /** Latest trend estimate (NOT clinical). */
     breathingRate?: number;
     heartRate?: number;
   }>;
+}
+
+/** A time-bucketed activity entry for the timeline view. */
+export interface ActivityEvent {
+  timestamp: number;
+  type: "presence" | "motion" | "fall" | "inactivity" | "breathing" | "heart_rate";
+  detail: string;
+  value?: number;
 }
 
 /** SSE event the dashboard subscribes to at GET /api/events. */

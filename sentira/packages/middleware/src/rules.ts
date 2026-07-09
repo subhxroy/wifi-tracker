@@ -100,50 +100,13 @@ function healthRule(reading: SensorReading, _ctx: RuleContext): RuleResult {
 // ---------------------------------------------------------------------------
 
 function fallRule(reading: SensorReading, ctx: RuleContext): RuleResult {
+  // Fall is handled by the engine's two-stage confirm (post-spike recovery check).
+  // The rule generates no candidates — it only contributes a health update if
+  // presence is confirmed, so the node-health shows presence=ON during the fall.
   if (reading.entity !== "fall") return { candidates: [] };
   const resident = ctx.store.residentForNode(reading.nodeId);
   if (!resident) return { candidates: [] };
-
-  // The 'fall' entity is an event. Stage-1: the spike just happened.
-  // Stage-2: check there has been no recovery motion within the confirm window.
-  // Because we evaluate at spike time, we look *forward* by checking recent
-  // history — if motion_level has been ~0 in the few seconds leading up to
-  // the spike AND presence is still registered, we treat the two-stage as
-  // confirmed at spike+confirmWindow (the alert is created here; the state
-  // machine moves it pending→active after the window elapses).
-  const windowMs = resident.thresholds.fallConfirmWindowSec * 1000;
-  const sinceMs = reading.timestamp - windowMs;
-  const recent = ctx.store.historyFor(reading.nodeId, sinceMs);
-  const motionReadings = recent.filter((r) => r.entity === "motion_level" || r.entity === "motion_energy");
-  const maxMotion = motionReadings.reduce((m, r) => Math.max(m, r.value ?? 0), 0);
-  const presenceReading = ctx.store.latest(reading.nodeId, "presence");
-  const presenceConfirmed = presenceReading?.state === true;
-
-  // Single-spike suppression: if there was clearly motion in the window before
-  // the spike, this was likely not a fall (e.g., a dropped object).
-  const looksLikeRealFall = presenceConfirmed && maxMotion < 12;
-
-  const message = looksLikeRealFall
-    ? `Possible fall detected — please check on ${resident.name}.`
-    : `Possible fall-like motion in ${resident.room} — please verify on ${resident.name}.`;
-
-  return {
-    candidates: [{
-      residentId: resident.id,
-      residentName: resident.name,
-      nodeId: reading.nodeId,
-      room: resident.room,
-      type: "fall",
-      severity: "HIGH",
-      message,
-      context: {
-        secondsSinceMotion: Math.round((reading.timestamp - lastMotionMs(ctx.store, reading.nodeId)) / 1000),
-        detail: looksLikeRealFall
-          ? `Fall signal with no recovery motion in the ${resident.thresholds.fallConfirmWindowSec}s confirm window.`
-          : `Fall signal but motion was detected in the confirm window — may be a false positive.`,
-      },
-    }],
-  };
+  return { candidates: [] };
 }
 
 // ---------------------------------------------------------------------------
@@ -170,7 +133,9 @@ function inactivityRule(reading: SensorReading, ctx: RuleContext): RuleResult {
 
   // The RuView `no_movement` semantic already encodes the threshold; we surface
   // it as a HIGH inactivity alert only if it has persisted past *our* window.
-  if (secondsSinceMotion < Math.min(windowSec, resident.thresholds.inactivityDaySec)) {
+  // Use `windowSec` directly so the longer night window (inactivityNightSec)
+  // actually applies — previously a Math.min clamp capped it at the day window.
+  if (secondsSinceMotion < windowSec) {
     return { candidates: [] };
   }
 
@@ -267,7 +232,8 @@ export function lastMotionMs(store: Store, nodeId: string): number {
   if (node?.lastMotion) return node.lastMotion;
   const recent = store.historyFor(nodeId, Date.now() - 60_000);
   const motion = recent.filter((r) => r.entity === "motion_level" && (r.value ?? 0) > 0);
-  return motion.length ? Math.max(...motion.map((r) => r.timestamp)) : Date.now();
+  // Return 0 when no motion history exists — avoids false inactivity suppression from Date.now()
+  return motion.length ? Math.max(...motion.map((r) => r.timestamp)) : 0;
 }
 
 function inDayWindow(nowMs: number, window: [string, string]): boolean {

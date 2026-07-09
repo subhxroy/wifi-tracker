@@ -6,9 +6,9 @@ COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
 COPY packages/types ./packages/types
 COPY packages/dashboard ./packages/dashboard
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+RUN pnpm install --frozen-lockfile --only-built-dependencies
 
 RUN pnpm --filter @sentira/dashboard build
 
-EXPOSE 3000
+EXPOSE 4300
 CMD ["pnpm", "--filter", "@sentira/dashboard", "start"]

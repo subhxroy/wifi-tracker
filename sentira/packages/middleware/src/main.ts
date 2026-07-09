@@ -41,6 +41,7 @@ async function main(): Promise<void> {
   const shutdown = async (sig: string) => {
     logger.info({ sig }, "shutting down");
     heartbeat.stop();
+    engine.stop();
     await ingestor.stop();
     await app.close();
     process.exit(0);

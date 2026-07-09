@@ -68,7 +68,7 @@ export class RuViewPublisher {
   }
 
   /** Publish one tick's emissions. */
-  async publishState(emissions: ReadonlyArray<{ slug: EntitySlug; component: Component; value?: number; binary?: boolean | "trigger" }>): Promise<void> {
+  async publishState(emissions: ReadonlyArray<{ slug: EntitySlug; component: Component; value?: number; binary?: boolean | "trigger" }>, ts = Date.now()): Promise<void> {
     for (const e of emissions) {
       const parts: TopicParts = {
         prefix: this.cfg.prefix,
@@ -76,7 +76,7 @@ export class RuViewPublisher {
         nodeId: this.cfg.nodeId,
         slug: e.slug,
       };
-      const payload = encodePayload(e.value, e.binary);
+      const payload = encodePayload(e.slug, e.value, e.binary, ts);
       await this.publish(stateTopic(parts), payload, { retain: false, qos: 0 });
     }
   }
@@ -116,10 +116,54 @@ export class RuViewPublisher {
   }
 }
 
-function encodePayload(value: number | undefined, binary: boolean | "trigger" | undefined): string {
-  if (binary === "trigger") return JSON.stringify({ event_type: "trigger" });
+/**
+ * Encode payload matching real RuView firmware format:
+ *   sensor:    {"bpm":14.2,"confidence":0.87,"ts":"..."}
+ *   event:     {"event_type":"fall_detected","ts":"...","confidence":0.87}
+ *   binary:    ON / OFF (backward compat)
+ *   bare number: fallback (backward compat with old mock)
+ */
+function encodePayload(slug: EntitySlug, value: number | undefined, binary: boolean | "trigger" | undefined, ts: number): string {
+  // Events — use real firmware event_type values
+  if (binary === "trigger" || slug === "fall" || slug === "bed_exit" || slug === "multi_room_transition") {
+    const eventMap: Partial<Record<EntitySlug, string>> = {
+      fall: "fall_detected",
+      bed_exit: "bed_exit",
+      multi_room_transition: "transition",
+    };
+    return JSON.stringify({
+      event_type: eventMap[slug] ?? "trigger",
+      ts: new Date(ts).toISOString(),
+      confidence: 0.87,
+    });
+  }
+
+  // Binary — HA-style ON/OFF
   if (binary === true) return "ON";
   if (binary === false) return "OFF";
+
+  // Numeric sensors — real firmware JSON field mapping
+  const fieldMap: Partial<Record<EntitySlug, string>> = {
+    breathing_rate: "bpm",
+    heart_rate: "bpm",
+    motion_level: "level_pct",
+    motion_energy: "level_pct",
+    rssi: "dbm",
+    person_count: "n_persons",
+    presence_score: "score",
+    fall_risk_elevated: "score",
+  };
+  if (typeof value === "number") {
+    const field = fieldMap[slug];
+    if (field) {
+      return JSON.stringify({
+        [field]: value,
+        ts: new Date(ts).toISOString(),
+      });
+    }
+  }
+
+  // Fallback: bare number or empty
   if (typeof value === "number") return String(value);
   return "";
 }

@@ -20,7 +20,7 @@ import type { MiddlewareConfig } from "./config.js";
 import { logger } from "./logger.js";
 import type { Store } from "./store.js";
 
-export type ReadingHandler = (reading: SensorReading) => void;
+export type ReadingHandler = (reading: SensorReading) => void | Promise<void>;
 
 const KNOWN_ENTITIES = new Set<string>([
   "presence", "person_count", "breathing_rate", "heart_rate", "motion_level",
@@ -94,7 +94,14 @@ export class MqttIngestor {
     if (!reading) return;
 
     this.store.recordReading(reading);
-    this.onReading(reading);
+    try {
+      const result = this.onReading(reading);
+      if (result instanceof Promise) {
+        result.catch((err) => logger.error({ err, topic, entity: parsed.slug }, "onReading handler threw"));
+      }
+    } catch (err) {
+      logger.error({ err, topic, entity: parsed.slug }, "onReading handler threw synchronously");
+    }
   }
 
   async stop(): Promise<void> {
@@ -130,26 +137,60 @@ function decodeReading(parsed: ParsedTopic, body: string): SensorReading | undef
   const timestamp = Date.now();
   const raw = trimmed;
 
-  // Event entities (fall / bed_exit / multi_room_transition) arrive as JSON.
+  // JSON payloads — real firmware sends JSON for ALL entity types.
   if (trimmed.startsWith("{")) {
     try {
       const obj = JSON.parse(trimmed) as Record<string, unknown>;
-      return { timestamp, nodeId: parsed.nodeId, entity, state: obj.event_type === "trigger", raw };
+
+      // 1. Event entities (fall / bed_exit / multi_room_transition).
+      if (typeof obj.event_type === "string") {
+        const knownEvents = ["trigger", "fall_detected", "bed_exit", "transition"];
+        if (knownEvents.includes(obj.event_type)) {
+          return { timestamp, nodeId: parsed.nodeId, entity, state: true, raw };
+        }
+        return undefined;
+      }
+
+      // 2. Numeric sensors — extract value from known fields.
+      const fieldMap: Partial<Record<RuViewEntityKind, string>> = {
+        breathing_rate: "bpm",
+        heart_rate: "bpm",
+        motion_level: "level_pct",
+        motion_energy: "level_pct",
+        rssi: "dbm",
+        person_count: "n_persons",
+        presence_score: "score",
+        fall_risk_elevated: "score",
+      };
+      const field = fieldMap[entity];
+      if (field && typeof obj[field] === "number") {
+        return {
+          timestamp, nodeId: parsed.nodeId, entity,
+          value: obj[field] as number,
+          unit: unitFor(entity), raw,
+        };
+      }
+
+      // 3. HA-style binary JSON: {"state": "ON"} / {"state": true}.
+      const stateVal = obj.state;
+      if (stateVal === true || stateVal === "ON") return { timestamp, nodeId: parsed.nodeId, entity, state: true, raw };
+      if (stateVal === false || stateVal === "OFF") return { timestamp, nodeId: parsed.nodeId, entity, state: false, raw };
+
+      return undefined;
     } catch {
       return undefined;
     }
   }
 
-  // Binary sensors → ON / OFF.
+  // 4. Binary sensors → ON / OFF (backward compat with mock).
   const upper = trimmed.toUpperCase();
   if (upper === "ON") return { timestamp, nodeId: parsed.nodeId, entity, state: true, raw };
   if (upper === "OFF") return { timestamp, nodeId: parsed.nodeId, entity, state: false, raw };
 
-  // Numeric sensors.
+  // 5. Numeric sensors (bare number — backward compat with mock).
   const value = Number(trimmed);
   if (Number.isFinite(value)) {
-    const unit = unitFor(entity);
-    return { timestamp, nodeId: parsed.nodeId, entity, value, unit, raw };
+    return { timestamp, nodeId: parsed.nodeId, entity, value, unit: unitFor(entity), raw };
   }
 
   return undefined;

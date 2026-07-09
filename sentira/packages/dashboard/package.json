@@ -5,27 +5,33 @@
   "type": "module",
   "description": "Sentira caregiver dashboard — camera-free elder monitoring UI. Dark palette, calm status cards, real-time SSE.",
   "scripts": {
-    "dev": "next dev --port 4300",
-    "build": "next build",
+    "tw:build": "tailwindcss -i app/tailwind.src.css -o app/tailwind.generated.css",
+    "tw:watch": "tailwindcss -i app/tailwind.src.css -o app/tailwind.generated.css --watch",
+    "dev": "npm run tw:build && next dev --port 4300",
+    "build": "npm run tw:build && next build",
     "start": "next start --port 4300",
     "lint": "next lint",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@sentira/types": "workspace:*",
     "@phosphor-icons/react": "^2.1.7",
-    "firebase": "^11.0.1",
+    "@sentira/types": "workspace:*",
     "next": "^15.0.3",
     "react": "^19.0.0-rc",
     "react-dom": "^19.0.0-rc",
     "recharts": "^2.13.3"
   },
   "devDependencies": {
+    "@tailwindcss/cli": "^4.3.2",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^22.9.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "postcss": "^8.5.16",
     "tailwindcss": "^4.0.0",
     "typescript": "^5.6.3"
+  },
+  "peerDependencies": {
+    "postcss": "^8.5.16"
   }
 }

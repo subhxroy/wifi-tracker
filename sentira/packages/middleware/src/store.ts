@@ -11,9 +11,20 @@
  */
 
 import type {
-  Alert, NodeHealth, OverviewSnapshot, Resident, SensorReading,
+  Alert, AlertContext, NodeHealth, OverviewSnapshot, Resident, SensorReading,
 } from "@sentira/types";
 import { nanoid } from "nanoid";
+
+/** A fall event awaiting two-stage confirmation (post-spike recovery check). */
+export interface PendingFall {
+  timestamp: number;
+  residentId: string;
+  nodeId: string;
+  residentName: string;
+  room: string;
+  message: string;
+  context: AlertContext;
+}
 
 export type StoreEvent =
   | { kind: "alert_created"; alert: Alert }
@@ -23,7 +34,7 @@ export type StoreEvent =
 
 type Listener = (e: StoreEvent) => void;
 
-const MAX_HISTORY_PER_NODE = 600; // ~20 min at 2s intervals
+const MAX_HISTORY_PER_NODE = 1500; // ~50 min at 2s intervals (filtered for 24h timeline views)
 
 export class Store {
   private residents = new Map<string, Resident>();
@@ -33,6 +44,9 @@ export class Store {
   private nodeHealth = new Map<string, NodeHealth>();
   private history = new Map<string, SensorReading[]>();
   private listeners = new Set<Listener>();
+
+  /** Pending falls awaiting two-stage confirmation. */
+  readonly pendingFalls = new Map<string, PendingFall>();
 
   constructor(seed: Resident[]) {
     for (const r of seed) this.residents.set(r.id, r);
@@ -76,6 +90,31 @@ export class Store {
   historyFor(nodeId: string, sinceMs: number): SensorReading[] {
     const arr = this.history.get(nodeId) ?? [];
     return arr.filter((r) => r.timestamp >= sinceMs);
+  }
+
+  /** Activity events for a node since a given time — used by the timeline endpoint. */
+  activityEvents(nodeId: string, sinceMs: number): import("@sentira/types").ActivityEvent[] {
+    const arr = this.history.get(nodeId) ?? [];
+    const events: import("@sentira/types").ActivityEvent[] = [];
+    for (const r of arr) {
+      if (r.timestamp < sinceMs) continue;
+      if (r.entity === "presence") {
+        events.push({ timestamp: r.timestamp, type: "presence", detail: r.state ? "Entered room" : "Left room" });
+      } else if (r.entity === "motion_level" || r.entity === "motion_energy") {
+        if ((r.value ?? 0) > 8) {
+          events.push({ timestamp: r.timestamp, type: "motion", detail: `Motion detected (${Math.round(r.value ?? 0)})`, value: r.value });
+        }
+      } else if (r.entity === "fall") {
+        events.push({ timestamp: r.timestamp, type: "fall", detail: "Fall-like event detected" });
+      } else if (r.entity === "fall_risk_elevated") {
+        events.push({ timestamp: r.timestamp, type: "inactivity", detail: "Fall risk elevated — prolonged stillness" });
+      } else if (r.entity === "breathing_rate") {
+        events.push({ timestamp: r.timestamp, type: "breathing", detail: `Breathing rate ${Math.round(r.value ?? 0)} bpm`, value: r.value });
+      } else if (r.entity === "heart_rate") {
+        events.push({ timestamp: r.timestamp, type: "heart_rate", detail: `Heart rate ${Math.round(r.value ?? 0)} bpm`, value: r.value });
+      }
+    }
+    return events;
   }
 
   /** Most recent reading of a given entity for a node. */
@@ -163,11 +202,15 @@ export class Store {
         const highActive = this.allActiveAlerts().find((a) => a.residentId === r.id && a.severity === "HIGH" && (a.status === "active" || a.status === "escalated"));
         const breath = nodes.length ? nodes[nodes.length - 1]?.breathingRate : undefined;
         const heart = nodes.length ? nodes[nodes.length - 1]?.heartRate : undefined;
+        const lastActivity = nodes.length
+          ? Math.max(...nodes.map((n) => n.lastMotion))
+          : undefined;
         return {
           id: r.id, name: r.name, room: r.room,
           status: highActive ? "alert" : active ? "attention" : "normal",
           activeAlertId: active?.id, activeAlertType: active?.type,
           sensorOnline, sensorLastSeen,
+          lastActivity: lastActivity && lastActivity > 0 ? lastActivity : undefined,
           breathingRate: breath, heartRate: heart,
         };
       }),

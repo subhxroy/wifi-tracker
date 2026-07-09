@@ -35,3 +35,6 @@ firestore-debug.log
 # ruview upstream artifacts (we don't build it from here)
 ruview/target
 ruview/**/target
+
+# tailwind generated
+**/tailwind.generated.css

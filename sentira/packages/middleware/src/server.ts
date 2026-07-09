@@ -148,6 +148,13 @@ export function buildServer(
   // --- nodes ---
   app.get("/api/nodes", async () => store.allNodes());
 
+  app.get("/api/nodes/:nodeId/activity", async (req) => {
+    const { nodeId } = req.params as { nodeId: string };
+    const q = req.query as { since?: string };
+    const since = q.since ? Number(q.since) : Date.now() - 86400000; // default 24h
+    return store.activityEvents(nodeId, since);
+  });
+
   // --- SSE ---
   app.get("/api/events", async (req, reply) => {
     // For SSE we drive the underlying Node ServerResponse directly.

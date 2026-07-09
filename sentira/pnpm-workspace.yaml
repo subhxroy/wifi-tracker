@@ -1,7 +1,8 @@
 packages:
   - "packages/*"
+allowBuilds:
+  '@parcel/watcher': true
 onlyBuiltDependencies:
-  - "@firebase/util"
   - esbuild
   - protobufjs
   - sharp

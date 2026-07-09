@@ -6,5 +6,6 @@
     "module": "ESNext",
     "moduleResolution": "Bundler"
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "exclude": ["src/e2e-test.ts", "src/verify-fixes.ts"]
 }

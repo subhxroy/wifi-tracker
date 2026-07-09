@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "Sentira fusion + rules engine: ingests RuView MQTT, runs detection rules, owns alert state, drives Twilio/FCM providers + REST/SSE API.",
-  "main": "./src/index.ts",
+  "main": "./src/main.ts",
   "scripts": {
     "dev": "tsx watch --env-file=../../.env src/main.ts",
     "start": "tsx --env-file=../../.env src/main.ts",
@@ -13,15 +13,17 @@
     "lint": "echo 'no lint'"
   },
   "dependencies": {
+    "@fastify/cors": "^10.0.1",
     "@sentira/types": "workspace:*",
     "fastify": "^5.1.0",
-    "@fastify/cors": "^10.0.1",
     "mqtt": "^5.10.1",
-    "pino": "^9.5.0",
-    "nanoid": "^5.0.7"
+    "nanoid": "^5.0.7",
+    "pino": "^9.5.0"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",
+    "aedes": "^1.1.1",
+    "pino-pretty": "^13.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
   }

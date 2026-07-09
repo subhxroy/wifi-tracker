@@ -1,5 +1,7 @@
 const MIDDLEWARE_URL = process.env.NEXT_PUBLIC_MIDDLEWARE_URL ?? "http://127.0.0.1:4400";
-const API_TOKEN = process.env.NEXT_PUBLIC_MIDDLEWARE_TOKEN ?? "";
+// Mirrors the server-side `MIDDLEWARE_API_TOKEN` (middleware/src/config.ts).
+// Must be `NEXT_PUBLIC_` so it's inlined into the browser bundle.
+const API_TOKEN = process.env.NEXT_PUBLIC_MIDDLEWARE_API_TOKEN ?? "";
 
 function headers(): Record<string, string> {
   const h: Record<string, string> = { "Content-Type": "application/json" };
@@ -76,6 +78,13 @@ export async function resolveAlert(id: string, caregiverId = "dashboard_user") {
 
 export async function getNodes() {
   return fetchJson<import("@sentira/types").NodeHealth[]>(`${MIDDLEWARE_URL}/api/nodes`);
+}
+
+export async function getNodeActivity(nodeId: string, sinceMs?: number) {
+  const since = sinceMs ?? Date.now() - 86400000;
+  return fetchJson<import("@sentira/types").ActivityEvent[]>(
+    `${MIDDLEWARE_URL}/api/nodes/${encodeURIComponent(nodeId)}/activity?since=${since}`,
+  );
 }
 
 export function sseUrl(): string {

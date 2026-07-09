@@ -1,0 +1,11 @@
+[build]
+  command = "corepack enable && corepack prepare pnpm@latest --activate && pnpm install --frozen-lockfile && pnpm --filter @sentira/dashboard build"
+  publish = "packages/dashboard/.next"
+
+[build.environment]
+  NEXT_PRIVATE_STANDALONE = "false"
+
+[[redirects]]
+  from = "/*"
+  to   = "/.netlify/functions/next_handler"
+  status = 200

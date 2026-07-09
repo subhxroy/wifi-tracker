@@ -15,7 +15,7 @@
  * built in from day 1).
  */
 
-import type { Alert, AlertSeverity, AuditAction } from "@sentira/types";
+import type { Alert, AuditAction } from "@sentira/types";
 import type { MiddlewareConfig } from "./config.js";
 import { logger } from "./logger.js";
 import type { Store } from "./store.js";
@@ -27,7 +27,6 @@ export class AlertManager {
   private twilio: TwilioProvider;
   private fcm: FcmProvider;
   private escalationTimers = new Map<string, NodeJS.Timeout>();
-  private retryQueue: Array<{ alertId: string; attempt: number }> = [];
 
   constructor(
     private readonly store: Store,
@@ -160,8 +159,4 @@ export class AlertManager {
       withAudit({ ...a, status: "resolved", resolvedAt: Date.now() }, { action: "auto_resolved", actor: "system", detail: reason }),
     );
   }
-}
-
-export function severityForType(type: Alert["type"]): AlertSeverity {
-  return type === "fall" || type === "inactivity" ? "HIGH" : "MEDIUM";
 }

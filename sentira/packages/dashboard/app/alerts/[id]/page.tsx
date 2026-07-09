@@ -1,35 +1,41 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import type { Alert, SseEvent } from "@sentira/types";
 import { getAlert, acknowledgeAlert, escalateAlert, markFalseAlarm, resolveAlert } from "@/lib/middleware-api";
 import { useSse } from "@/lib/use-sse";
 import { useAuth } from "@/lib/auth";
 import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
 import { SeverityBadge } from "@/components/StatusBadge";
 import { Spinner } from "@/components/Spinner";
 import { SignInForm } from "@/components/SignInForm";
-import { formatDateTime, timeAgo } from "@/lib/format";
+import { formatDateTime } from "@/lib/format";
 import { ArrowLeft, CheckCircle, XCircle, CaretDoubleRight, Check } from "@phosphor-icons/react";
 
 export default function AlertDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const { user, loading: authLoading } = useAuth();
   const [alert, setAlert] = useState<Alert | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [reconnecting, setReconnecting] = useState(false);
 
   const fetchAlert = useCallback(async () => {
     if (!id) return;
     try {
       const data = await getAlert(id);
       setAlert(data);
+      setReconnecting(false);
     } catch (err) {
-      setError((err as Error).message);
+      if (alert) {
+        setReconnecting(true);
+      } else {
+        setError((err as Error).message);
+      }
     } finally {
       setLoading(false);
     }
@@ -41,7 +47,10 @@ export default function AlertDetailPage() {
 
   useSse(
     useCallback((event: SseEvent) => {
-      if (event.type === "alert_updated" && event.alert.id === id) setAlert(event.alert);
+      if (event.type === "alert_updated" && event.alert.id === id) {
+        setAlert(event.alert);
+        setReconnecting(false);
+      }
     }, [id]),
     !!user,
   );
@@ -86,7 +95,7 @@ export default function AlertDetailPage() {
       <div className="min-h-screen bg-canvas">
         <Navbar />
         <div className="mx-auto max-w-3xl px-6 pt-28">
-          <div className="rounded-2xl border border-danger/20 bg-danger-muted p-5 text-sm text-danger">
+          <div className="rounded-3xl border border-ember/20 bg-paper p-5 text-sm text-ember shadow-subtle">
             {error ?? "Alert not found"}
           </div>
         </div>
@@ -100,65 +109,66 @@ export default function AlertDetailPage() {
     <div className="min-h-screen bg-canvas">
       <Navbar />
       <main className="mx-auto max-w-3xl px-6 pt-24 pb-12">
-        {/* Back */}
         <Link
           href="/"
-          className="mb-6 inline-flex items-center gap-1.5 text-sm text-text-muted no-underline transition-colors hover:text-text"
+          className="mb-6 inline-flex items-center gap-1.5 text-sm text-mid-gray no-underline transition-colors hover:text-ink"
         >
           <ArrowLeft size={14} />
           Back to overview
         </Link>
 
-        {/* Header */}
+        {reconnecting && (
+          <div className="mb-4 animate-slide-down rounded-2xl border border-hairline bg-paper px-5 py-2.5 text-xs text-ink shadow-subtle">
+            Reconnecting to middleware...
+          </div>
+        )}
+
         <div className="mb-6 animate-fade-in">
           <div className="mb-2 flex items-center gap-3">
             <SeverityBadge severity={alert.severity} />
-            <h1 className="font-heading text-2xl text-text capitalize">
+            <h1 className="text-2xl font-semibold tracking-tight text-ink capitalize">
               {alert.type.replace(/_/g, " ")}
             </h1>
           </div>
-          <p className="text-sm text-text-secondary">
+          <p className="text-sm text-ink-soft">
             {alert.residentName} · {alert.room} · {formatDateTime(alert.createdAt)}
           </p>
         </div>
 
-        {/* Message */}
-        <div className="mb-6 rounded-2xl border border-border-subtle bg-surface p-6">
-          <p className="text-base leading-relaxed text-text">{alert.message}</p>
+        <div className="mb-6 rounded-3xl border border-hairline bg-paper p-6 shadow-subtle">
+          <p className="text-base leading-relaxed text-ink">{alert.message}</p>
           {alert.context?.detail && (
-            <p className="mt-2 text-sm text-text-secondary">{alert.context.detail}</p>
+            <p className="mt-2 text-sm text-ink-soft">{alert.context.detail}</p>
           )}
         </div>
 
-        {/* Vital context */}
         {alert.context && (alert.context.breathingRate || alert.context.heartRate) && (
           <div className="mb-6 grid gap-4 sm:grid-cols-2 stagger-children">
             {alert.context.breathingRate != null && (
-              <div className="rounded-2xl border border-border-subtle bg-surface p-5">
-                <span className="text-xs text-text-muted">Breathing rate (trend estimate)</span>
-                <p className="mt-1 font-heading text-3xl text-text">
-                  {alert.context.breathingRate} <span className="text-sm font-normal text-text-muted">bpm</span>
+              <div className="rounded-3xl border border-hairline bg-paper p-5 shadow-subtle">
+                <span className="text-xs text-mid-gray">Breathing rate (trend estimate)</span>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">
+                  {alert.context.breathingRate} <span className="text-sm font-normal text-mid-gray">bpm</span>
                 </p>
               </div>
             )}
             {alert.context.heartRate != null && (
-              <div className="rounded-2xl border border-border-subtle bg-surface p-5">
-                <span className="text-xs text-text-muted">Heart rate (trend estimate)</span>
-                <p className="mt-1 font-heading text-3xl text-text">
-                  {alert.context.heartRate} <span className="text-sm font-normal text-text-muted">bpm</span>
+              <div className="rounded-3xl border border-hairline bg-paper p-5 shadow-subtle">
+                <span className="text-xs text-mid-gray">Heart rate (trend estimate)</span>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-ink">
+                  {alert.context.heartRate} <span className="text-sm font-normal text-mid-gray">bpm</span>
                 </p>
               </div>
             )}
           </div>
         )}
 
-        {/* Actions */}
         {isActive && (
-          <div className="mb-6 flex flex-wrap gap-2.5 stagger-children">
+          <div className="mb-6 flex flex-col gap-2.5 sm:flex-row sm:flex-wrap stagger-children">
             <button
               onClick={() => doAction("acknowledge", () => acknowledgeAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-canvas transition-all hover:bg-primary-hover active:scale-[0.97] disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 rounded-2xl bg-ink px-5 py-3 text-sm font-semibold text-paper transition-all hover:bg-ink-soft active:scale-[0.97] disabled:opacity-50 sm:py-2.5"
             >
               {actionLoading === "acknowledge" ? <Spinner size={14} /> : <CheckCircle size={16} />}
               Acknowledge
@@ -166,7 +176,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("escalate", () => escalateAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-xl border border-warning/25 bg-warning-muted px-5 py-2.5 text-sm font-medium text-warning transition-all hover:bg-warning/20 active:scale-[0.97] disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-hairline bg-paper px-5 py-3 text-sm font-medium text-ink transition-all hover:bg-canvas active:scale-[0.97] disabled:opacity-50 sm:py-2.5"
             >
               {actionLoading === "escalate" ? <Spinner size={14} /> : <CaretDoubleRight size={16} />}
               Escalate now
@@ -174,7 +184,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("false-alarm", () => markFalseAlarm(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-xl border border-border bg-surface px-5 py-2.5 text-sm font-medium text-text-secondary transition-all hover:text-text active:scale-[0.97] disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-hairline bg-paper px-5 py-3 text-sm font-medium text-ink transition-all hover:bg-canvas active:scale-[0.97] disabled:opacity-50 sm:py-2.5"
             >
               {actionLoading === "false-alarm" ? <Spinner size={14} /> : <XCircle size={16} />}
               False alarm
@@ -182,7 +192,7 @@ export default function AlertDetailPage() {
             <button
               onClick={() => doAction("resolve", () => resolveAlert(alert.id))}
               disabled={actionLoading !== null}
-              className="flex items-center gap-1.5 rounded-xl border border-success/25 bg-success-muted px-5 py-2.5 text-sm font-medium text-success transition-all hover:bg-success/20 active:scale-[0.97] disabled:opacity-50"
+              className="flex items-center justify-center gap-1.5 rounded-2xl border border-hairline bg-paper px-5 py-3 text-sm font-medium text-ink transition-all hover:bg-canvas active:scale-[0.97] disabled:opacity-50 sm:py-2.5"
             >
               {actionLoading === "resolve" ? <Spinner size={14} /> : <Check size={16} />}
               Resolve
@@ -190,9 +200,8 @@ export default function AlertDetailPage() {
           </div>
         )}
 
-        {/* Status info */}
-        <div className="mb-6 rounded-2xl border border-border-subtle bg-surface p-5">
-          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-text-muted">Status</h3>
+        <div className="mb-6 rounded-3xl border border-hairline bg-paper p-5 shadow-subtle">
+          <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-mid-gray">Status</h3>
           <div className="space-y-1.5 text-sm">
             <StatusRow label="Current status" value={alert.status} />
             {alert.escalationCount > 0 && (
@@ -210,29 +219,29 @@ export default function AlertDetailPage() {
           </div>
         </div>
 
-        {/* Audit trail */}
-        <div className="rounded-2xl border border-border-subtle bg-surface overflow-hidden">
-          <div className="border-b border-border-subtle px-5 py-3.5">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+        <div className="rounded-3xl border border-hairline bg-paper overflow-hidden shadow-subtle">
+          <div className="border-b border-hairline px-5 py-3.5">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-mid-gray">
               Audit trail ({alert.audit.length} entries)
             </h3>
           </div>
-          <div className="divide-y divide-border-subtle">
+          <div className="divide-y divide-hairline">
             {alert.audit.map((entry, i) => (
               <div key={i} className="flex items-start gap-3 px-5 py-3">
-                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-text-muted" />
+                <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-mid-gray" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-text capitalize">{entry.action.replace(/_/g, " ")}</p>
+                  <p className="text-sm font-medium text-ink capitalize">{entry.action.replace(/_/g, " ")}</p>
                   {entry.detail && (
-                    <p className="mt-0.5 text-xs text-text-secondary truncate">{entry.detail}</p>
+                    <p className="mt-0.5 text-xs text-ink-soft truncate">{entry.detail}</p>
                   )}
                 </div>
-                <span className="shrink-0 text-xs text-text-muted">{formatDateTime(entry.timestamp)}</span>
+                <span className="shrink-0 text-xs text-mid-gray">{formatDateTime(entry.timestamp)}</span>
               </div>
             ))}
           </div>
         </div>
       </main>
+      <Footer />
     </div>
   );
 }
@@ -240,8 +249,8 @@ export default function AlertDetailPage() {
 function StatusRow({ label, value }: { label: string; value: string }) {
   return (
     <p>
-      <span className="text-text-muted">{label}:</span>{" "}
-      <span className="font-medium text-text capitalize">{value}</span>
+      <span className="text-mid-gray">{label}:</span>{" "}
+      <span className="font-medium text-ink capitalize">{value}</span>
     </p>
   );
 }

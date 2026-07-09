@@ -55,7 +55,7 @@ const normal: ScenarioFn = ({ tick }) => {
     { slug: "motion_level", value: round(motion) },
     { slug: "room_active", binary: motion > 15 },
     { slug: "no_movement", binary: motion < 6 },
-    { slug: "fall_risk_elevated", binary: false },
+    { slug: "fall_risk_elevated", value: 0 },
     { slug: "someone_sleeping", binary: false },
     { slug: "rssi", value: -52 - Math.round(Math.random() * 4) },
   ];
@@ -77,9 +77,9 @@ const fall: ScenarioFn = ({ elapsedSec }) => {
     { slug: "heart_rate", value: recovering ? 74 : 95 },
     { slug: "motion_level", value: recovering ? 8 : 0 },
     { slug: "no_movement", binary: !recovering },
-    { slug: "fall_risk_elevated", binary: !recovering },
-    // The one-shot event — middleware treats this as the fast-fall spike.
-    ...(elapsedSec < 6 ? [{ slug: "fall" as EntitySlug, binary: "trigger" as const }] : []),
+    { slug: "fall_risk_elevated", value: recovering ? 0 : 0.8 },
+    // The one-shot fall event — middleware treats this as the fast-fall spike.
+    ...(elapsedSec >= 4 && elapsedSec < 6 ? [{ slug: "fall" as EntitySlug, binary: "trigger" as const }] : []),
     { slug: "rssi", value: -52 },
   ];
 };

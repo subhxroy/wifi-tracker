@@ -183,12 +183,13 @@ async function main(): Promise<void> {
   let tick = 0;
   const interval = setInterval(async () => {
     const elapsedSec = (Date.now() - startedAt) / 1000;
+    const ts = startedAt + tick * args.intervalMs;
     for (const [i, n] of nodes.entries()) {
       const emissions = scenario({ tick, elapsedSec, residentName: n.nodeId }).map((e) => ({
         ...e,
         component: ENTITIES.find((m) => m.slug === e.slug)?.component ?? componentForSlug(e.slug),
       }));
-      await n.publishState(emissions);
+      await n.publishState(emissions, ts);
     }
     tick++;
     if (args.once) { clearInterval(interval); await Promise.all(nodes.map((n) => n.disconnect())); }

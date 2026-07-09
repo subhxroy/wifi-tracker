@@ -178,7 +178,9 @@ pnpm docker:rebuild # rebuild + restart
 | `RUVIEW_NODE_PREFIX` | `wifi_densepose` | `wifi_densepose` | Node ID filter for topics |
 | `MIDDLEWARE_PORT` | `4400` | `4400` | HTTP API port |
 | `MIDDLEWARE_API_TOKEN` | _(empty)_ | _(empty)_ | Bearer auth token |
-| `NEXT_PUBLIC_MIDDLEWARE_URL` | `http://middleware:4400` | `http://127.0.0.1:4400` | API base URL |
+| `NEXT_PUBLIC_MIDDLEWARE_URL` | `http://middleware:4400` | `http://127.0.0.1:4400` | API base URL (dashboard) |
+| `NEXT_PUBLIC_MIDDLEWARE_API_TOKEN` | _(empty)_ | _(empty)_ | Mirror of `MIDDLEWARE_API_TOKEN` for browser |
+| `CORS_ORIGIN` | `*` | `*` | CORS origin (set to dashboard URL in cloud) |
 | `LOG_LEVEL` | `info` | `info` | Pino log level |
 
 ## Monitoring
@@ -199,6 +201,138 @@ Prometheus and Grafana configs are available in the RuView `monitoring/` directo
 git pull
 pnpm docker:rebuild
 ```
+
+## Cloud Deployment
+
+Sentira supports two cloud platforms for hybrid deployment when you want the dashboard accessible from anywhere while keeping the sensing infrastructure on your local network (or connecting via a cloud MQTT broker).
+
+### Principle
+
+```
+┌─────────────────────┐    ┌──────────────────┐    ┌───────────────────┐
+│  ESP32 on-site LAN  │───▶│   MQTT Broker     │───▶│  Middleware       │
+│  (RuView firmware)  │    │ (local or cloud)  │    │ (local or Railway)│
+└─────────────────────┘    └──────────────────┘    └────────┬──────────┘
+                                                             │ HTTP API
+                                                             ▼
+                                                  ┌───────────────────┐
+                                                  │  Dashboard        │
+                                                  │  (Netlify, public)│
+                                                  └───────────────────┘
+```
+
+### Netlify — Dashboard
+
+The dashboard is a Next.js app that deploys to Netlify with zero server configuration.
+
+**Prerequisites:**
+- GitHub repository pushed with the codebase
+- Netlify account (free tier works)
+
+**Setup:**
+
+1. Go to [netlify.com](https://netlify.com) → "Add new site" → "Import an existing project"
+
+2. Connect your GitHub repo
+
+3. Netlify auto-detects `netlify.toml` at the repo root — build settings are preconfigured:
+   - **Build command:** `pnpm install --frozen-lockfile && pnpm --filter @sentira/dashboard build`
+   - **Publish directory:** `packages/dashboard/.next`
+
+4. Add environment variables in the Netlify dashboard (Site settings → Environment variables):
+
+   | Variable | Example | Description |
+   |----------|---------|-------------|
+   | `NEXT_PUBLIC_MIDDLEWARE_URL` | `https://sentira-mw.up.railway.app` | Public URL of the middleware API |
+   | `NEXT_PUBLIC_MIDDLEWARE_API_TOKEN` | `abc123...` | Mirror of `MIDDLEWARE_API_TOKEN` |
+
+5. Deploy. The site is live on a `*.netlify.app` domain. Add a custom domain in settings.
+
+**Notes:**
+- The dashboard is an SSR app via Netlify's Next.js runtime — no manual function setup needed.
+- `@sentira/types` is resolved via pnpm workspace and `transpilePackages` in `next.config.ts`.
+- The middleware URL must be publicly reachable (or on the same LAN if using Netlify Dev).
+
+---
+
+### Railway — Middleware
+
+Railway hosts the middleware as a Docker container. The MQTT broker can run locally (on the ESP32 LAN) or as a cloud service (HiveMQ Cloud free tier).
+
+**Prerequisites:**
+- Railway account (free tier with $5 credit works)
+- GitHub repository pushed with the codebase
+
+**Setup:**
+
+1. Go to [railway.app](https://railway.app) → "New Project" → "Deploy from GitHub repo"
+
+2. Select your repo. Railway auto-detects `railway.json` which points to the middleware Dockerfile.
+
+3. The `railway.json` at the repo root configures:
+   - Docker build from `infrastructure/docker/middleware.Dockerfile`
+   - Health check at `/api/health`
+   - Automatic restarts
+
+4. Add environment variables in Railway dashboard (Variables tab):
+
+   | Variable | Example | Description |
+   |----------|---------|-------------|
+   | `MQTT_HOST` | `xxx.s2.eu.hivemq.cloud` | MQTT broker address |
+   | `MQTT_PORT` | `8883` | MQTT port (8883 for TLS) |
+   | `MQTT_USERNAME` | `sentira` | MQTT auth username |
+   | `MQTT_PASSWORD` | `your-password` | MQTT auth password |
+   | `RUVIEW_NODE_PREFIX` | `wifi_densepose` | Node ID filter |
+   | `MIDDLEWARE_PORT` | `4400` | HTTP API port |
+   | `MIDDLEWARE_API_TOKEN` | `openssl rand -hex 32` | Bearer auth token |
+   | `LOG_LEVEL` | `info` | Pino log level |
+   | `TWILIO_ACCOUNT_SID` | _(optional)_ | SMS/WhatsApp |
+   | `TWILIO_AUTH_TOKEN` | _(optional)_ | |
+   | `TWILIO_FROM_NUMBER` | _(optional)_ | |
+   | `TWILIO_WHATSAPP_FROM` | _(optional)_ | |
+   | `CORS_ORIGIN` | `https://your-site.netlify.app` | Allow dashboard origin |
+
+5. Deploy. Railway provides a `*.railway.app` URL.
+
+---
+
+### Cloud MQTT Broker (HiveMQ Cloud)
+
+When the middleware runs on Railway (or anywhere off the local network), it needs a reachable MQTT broker. Options:
+
+**Option A: HiveMQ Cloud (free, recommended)**
+
+1. Sign up at [hivemq.com/cloud](https://www.hivemq.com/cloud/) (free tier: 100 connections, 10 GB/month)
+2. Create a cluster → copy the broker URL (e.g. `xxx.s2.eu.hivemq.cloud`)
+3. Create MQTT credentials (username + password)
+4. Configure your ESP32 firmware to connect to the HiveMQ broker instead of the local Mosquitto
+5. Set `MQTT_HOST`, `MQTT_PORT=8883`, `MQTT_USERNAME`, `MQTT_PASSWORD` in Railway env vars
+
+**Option B: Mosquitto on Railway (advanced)**
+
+Deploy Mosquitto as a separate Railway service:
+
+1. In Railway dashboard, create a new service → "Empty service" → "Dockerfile"
+2. Use the official `eclipse-mosquitto:2.0.20` image — Railway uses Dockerfile-based deploy
+3. Create a minimal Dockerfile:
+   ```dockerfile
+   FROM eclipse-mosquitto:2.0.20
+   EXPOSE 1883 9001
+   ```
+4. Railway exposes TCP port 1883 via its TCP proxy.
+5. Link the Mosquitto service to the middleware service via Railway's internal networking.
+
+---
+
+### End-to-End Cloud Setup Summary
+
+1. **MQTT:** Set up HiveMQ Cloud → note broker URL + credentials
+2. **Railway:** Deploy middleware → set env vars pointing to HiveMQ
+3. **Netlify:** Deploy dashboard → set `NEXT_PUBLIC_MIDDLEWARE_URL` pointing to Railway URL
+4. **ESP32:** Flash firmware with HiveMQ broker address (or keep on local MQTT if on same LAN)
+5. **Verify:** Open Netlify dashboard URL → confirm sensor status and alerts work
+
+---
 
 ## Troubleshooting
 

@@ -6,8 +6,9 @@ Two separate projects that stack together:
 
 ```
 wifi-tracker/
-├── ruview/       Upstream WiFi sensing platform (MIT, by rUv)
-└── sentira/      Caregiver monitoring app built on RuView's MQTT feed
+├── ruview/         Upstream WiFi sensing platform (MIT, by rUv)
+├── sentira/        Caregiver monitoring app built on RuView's MQTT feed
+└── bloom-landing/  Sentira marketing landing page (Vite + React)
 ```
 
 ## How They Connect
@@ -144,6 +145,21 @@ curl http://localhost:4400/health      # middleware health
 curl http://localhost:4400/api/overview # resident status
 open http://localhost:4300             # dashboard
 ```
+
+## Landing Page
+
+`bloom-landing/` is a standalone Vite + React 19 + Tailwind v4 SPA serving as Sentira's marketing page.
+
+```bash
+cd bloom-landing
+npm run build   # → dist/ (deploy to Netlify/Vercel)
+```
+
+Same liquid-glass design language as the dashboard. CloudFront video background, Lucide icons, Poppins/Source Serif 4 fonts.
+
+## Codebase BRAIN
+
+[BRAIN.md](BRAIN.md) — full codebase reference for AI tools: directory tree, data flow, route tables, key files, deployment configs. Load before codegen sessions.
 
 See individual READMEs for full documentation:
 - [RuView](ruview/README.md) — hardware build, provisioning, sensing server, Home Assistant
