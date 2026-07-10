@@ -13,8 +13,8 @@ Before contributing, understand these non-negotiable constraints:
 
 ```bash
 # Clone
-git clone https://github.com/subhxroy/wifi-tracker.git
-cd wifi-tracker/sentira
+git clone https://github.com/subhxroy/sentira.git
+cd sentira/sentira
 
 # Prerequisites
 node >= 20

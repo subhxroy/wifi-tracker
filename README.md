@@ -1,4 +1,4 @@
-# WiFi Tracker — Camera-Free Elder Monitoring
+# Sentira — Camera-Free Elder Monitoring
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Privacy: 100% Camera-Free](https://img.shields.io/badge/Privacy-100%25%20Camera--Free-brightgreen)](docs/ARCHITECTURE.md#design-constraints)
@@ -7,7 +7,7 @@
 [![Dashboard Stack](https://img.shields.io/badge/Dashboard-Next.js%2015-black.svg)](sentira/packages/dashboard)
 
 > [!IMPORTANT]
-> **Sentira WiFi Tracker** is a privacy-first, camera-free, and wearable-free elder monitoring system. By analyzing **Wi-Fi Channel State Information (CSI)** from low-cost ESP32-S3 nodes, the system tracks presence, respiration trends, fall risks, and inactivity anomalies in real-time.
+> **Sentira** is a privacy-first, camera-free, and wearable-free elder monitoring system. By analyzing **Wi-Fi Channel State Information (CSI)** from low-cost ESP32-S3 nodes, the system tracks presence, respiration trends, fall risks, and inactivity anomalies in real-time.
 
 ---
 
@@ -16,7 +16,7 @@
 This workspace is structured as a multi-project monorepo containing three core components:
 
 ```text
-wifi-tracker/
+sentira/
  ruview/          Upstream WiFi sensing platform (MIT, by rUv) - C/Rust firmware & sensing server
  sentira/         Caregiver monitoring system - rules engine, alert lifecycle, and dashboard
  sentira-landing/   Sentira marketing landing page - Vite + React 19 + Tailwind CSS v4
@@ -94,8 +94,8 @@ Follow this path to spin up the local environment and simulate sensing events.
 
 ```bash
 # Clone the repository
-git clone https://github.com/subhxroy/wifi-tracker.git
-cd wifi-tracker
+git clone https://github.com/subhxroy/sentira.git
+cd sentira
 ```
 
 ### 2. Run the Sentira Dashboard & Middleware

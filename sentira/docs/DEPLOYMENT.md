@@ -26,8 +26,8 @@ docker compose version
 ### Step 2: Clone & Configure
 
 ```bash
-git clone https://github.com/subhxroy/wifi-tracker.git
-cd wifi-tracker/sentira
+git clone https://github.com/subhxroy/sentira.git
+cd sentira/sentira
 
 # Copy and edit configuration
 cp .env.example .env

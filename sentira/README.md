@@ -36,8 +36,8 @@
 
 ```bash
 # 0. Clone the repo
-git clone https://github.com/subhxroy/wifi-tracker.git
-cd wifi-tracker/sentira
+git clone https://github.com/subhxroy/sentira.git
+cd sentira/sentira
 
 # 1. Install dependencies
 pnpm install --ignore-scripts
